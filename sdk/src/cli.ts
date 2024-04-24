@@ -101,6 +101,19 @@ async function main() {
         printSimulateTx(provider.connection, txn);
       }
     });
+
+  commands
+    .command("get-user-claimed")
+    .requiredOption("--distributor-address, <string>", "Distributor address")
+    .requiredOption("--user-address, <string>", "User address")
+    .action(async ({ distributorAddress, userAddress }) => {
+      const { provider } = initializeClient();
+      const distributorClient = new Distributor(provider.connection);
+      const claimed = await distributorClient.userClaimed(new PublicKey(distributorAddress), new PublicKey(userAddress));
+
+      console.log(claimed);
+    });
+
   await commands.parseAsync();
 }
 

@@ -1,5 +1,4 @@
-import { BN, Idl, Program } from "@coral-xyz/anchor";
-import DISTRIBUTOR_IDL from "./rpc_client/merkle_distributor.json";
+import { BN } from "@coral-xyz/anchor";
 import * as Instructions from "./rpc_client/instructions";
 import {
   Connection,
@@ -21,16 +20,11 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 export class Distributor {
   private readonly _connection: Connection;
-  private readonly _distributorProgram: Program;
   private readonly _distributorProgramId: PublicKey;
 
   constructor(connection: Connection) {
     this._connection = connection;
     this._distributorProgramId = PROGRAM_ID;
-    this._distributorProgram = new Program(
-      DISTRIBUTOR_IDL as Idl,
-      this._distributorProgramId,
-    );
   }
 
   getConnection() {
@@ -41,12 +35,8 @@ export class Distributor {
     return this._distributorProgramId;
   }
 
-  getProgram() {
-    return this._distributorProgram;
-  }
-
   async userClaimed(merkleDistributorAddress: PublicKey, user: PublicKey): Promise<boolean> {
-    const claimStatusAddress = getClaimStatusPDA(this.getProgramID(), user, merkleDistributorAddress);
+    const claimStatusAddress = getClaimStatusPDA(user, merkleDistributorAddress, this.getProgramID());
 
     const claimStatus = await ClaimStatus.fetch(this.getConnection(), claimStatusAddress);
     if (!claimStatus) {
