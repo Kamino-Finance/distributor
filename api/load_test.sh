@@ -2,7 +2,7 @@
 
 set -e
 
-export base_url="https://api.dev.kamino.finance/distributor/user"
+export base_url="https://airdrop.kamino.finance/distributor/user"
 
 max_concurrency=10
 

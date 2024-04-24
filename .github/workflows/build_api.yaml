@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - master
-      - 'release/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -112,7 +111,7 @@ jobs:
         id: fetch_release_bin
         uses: docker/build-push-action@v4
         with:
-          file: ./Dockerfile
+          file: ./api/Dockerfile
           tags: hubbleprotocol/kamino-airdrop-api-release-bin:${{ needs.build_docker.outputs.build_version }}
           push: false
           target: release-bin
