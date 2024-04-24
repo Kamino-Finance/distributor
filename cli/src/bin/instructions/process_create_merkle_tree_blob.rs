@@ -1,7 +1,8 @@
 use crate::*;
 
-pub fn process_create_merkle_tree_blob(merkle_tree_blob_args: &CreateMerkleTreeBlobArgs) -> Result<()> {
-
+pub fn process_create_merkle_tree_blob(
+    merkle_tree_blob_args: &CreateMerkleTreeBlobArgs,
+) -> Result<()> {
     let paths: Vec<_> = fs::read_dir(&merkle_tree_blob_args.json_path)
         .unwrap()
         .map(|r| r.unwrap())
@@ -24,9 +25,7 @@ pub fn process_create_merkle_tree_blob(merkle_tree_blob_args: &CreateMerkleTreeB
             None => continue,
         };
         let base_path_clone = merkle_tree_blob_args.merkle_tree_path.clone();
-        let path = base_path_clone
-            .as_path()
-            .join(format!("{fname}.bin"));
+        let path = base_path_clone.as_path().join(format!("{fname}.bin"));
         single_tree.write_blob_to_file(&path)?;
         println!("Wrote blob to {path:?}");
     }

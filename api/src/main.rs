@@ -70,8 +70,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                     AirdropMerkleTree::new_from_blob(&single_tree_path)?
                 } else if ext == "json" {
                     AirdropMerkleTree::new_from_file(&single_tree_path)?
-                }
-                else {
+                } else {
                     println!("Skipping Merkle tree file {:?} in {:?} because it is not '.json' or '.bin' type", single_tree_path, &args.merkle_tree_path);
                     continue;
                 }
@@ -102,7 +101,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         for node in single_tree.tree_nodes.iter() {
             tree.insert(node.claimant, (distributor_pubkey, node.clone()));
         }
-        println!("Loaded {} {:?}", single_tree.airdrop_version, single_tree_path);
+        println!(
+            "Loaded {} {:?}",
+            single_tree.airdrop_version, single_tree_path
+        );
     }
 
     println!("Loaded {} trees", distributors.len());
