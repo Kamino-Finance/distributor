@@ -18,9 +18,9 @@ service-base-chart:
     containerPort: 7001
     protocol: TCP
 
-  startupProbe:
-    path: /health
-  livenessProbe:
-    path: /health
   readinessProbe:
-    path: /health
+    periodSeconds: 10
+    timeoutSeconds: 2
+  livenessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 2
