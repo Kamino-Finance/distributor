@@ -38,3 +38,4 @@ jobs:
         name: Clippy
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          args: --D warnings
