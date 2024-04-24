@@ -19,8 +19,15 @@ service-base-chart:
     protocol: TCP
 
   readinessProbe:
+    path: /health
     periodSeconds: 10
     timeoutSeconds: 2
   livenessProbe:
+    path: /health
     periodSeconds: 10
     timeoutSeconds: 2
+  startupProbe:
+    path: /health
+    periodSeconds: 10
+    timeoutSeconds: 2
+    initialDelaySeconds: 15
