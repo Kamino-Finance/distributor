@@ -11,8 +11,8 @@ pub fn process_claim_from_api(args: &Args, claim_args: &ClaimFromApiArgs) {
     let kv_proof: UserProof = reqwest::blocking::get(format!(
         "{}/{}/{}",
         claim_args.root_api,
-        args.mint.to_string(),
-        claimant.to_string()
+        args.mint,
+        claimant
     ))
     .unwrap()
     .json()
@@ -84,7 +84,7 @@ pub fn process_claim_from_api(args: &Args, claim_args: &ClaimFromApiArgs) {
                 &claimant_ata,
                 &destination_ata,
                 &claimant,
-                &vec![],
+                &[],
                 kv_proof.amount,
             )
             .unwrap(),

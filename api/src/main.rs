@@ -3,7 +3,6 @@ mod router;
 
 use std::{
     collections::HashMap, fmt::Debug, fs, net::SocketAddr, path::PathBuf, str::FromStr, sync::Arc,
-    thread, time,
 };
 
 use clap::Parser;
@@ -63,10 +62,22 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut max_num_nodes = 0u64;
     let mut max_total_claim = 0u64;
     let mut distributors = vec![];
-    let one_sec = time::Duration::from_millis(1000);
     for file in paths {
         let single_tree_path = file.path();
-        let single_tree = AirdropMerkleTree::new_from_file(&single_tree_path)?;
+        let single_tree = match single_tree_path.extension() {
+            Some(ext) => {
+                if ext == "bin" {
+                    AirdropMerkleTree::new_from_blob(&single_tree_path)?
+                } else if ext == "json" {
+                    AirdropMerkleTree::new_from_file(&single_tree_path)?
+                }
+                else {
+                    println!("Skipping Merkle tree file {:?} in {:?} because it is not '.json' or '.bin' type", single_tree_path, &args.merkle_tree_path);
+                    continue;
+                }
+            }
+            None => continue,
+        };
 
         let (distributor_pubkey, _bump) = get_merkle_distributor_pda(
             &args.program_id,
@@ -91,11 +102,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         for node in single_tree.tree_nodes.iter() {
             tree.insert(node.claimant, (distributor_pubkey, node.clone()));
         }
-        println!("done {}", single_tree.airdrop_version);
-        thread::sleep(one_sec);
+        println!("Loaded {} {:?}", single_tree.airdrop_version, single_tree_path);
     }
 
-    println!("Done all tree");
+    println!("Loaded {} trees", distributors.len());
 
     distributors.sort_unstable_by(|a, b| a.airdrop_version.cmp(&b.airdrop_version));
 

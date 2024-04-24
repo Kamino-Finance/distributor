@@ -2111,8 +2111,9 @@ checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
 
 [[package]]
 name = "jito-merkle-tree"
-version = "0.0.1"
+version = "0.1.0-SNAPSHOT"
 dependencies = [
+ "bincode",
  "csv",
  "fast-math",
  "hex",
@@ -2128,7 +2129,7 @@ dependencies = [
 
 [[package]]
 name = "jito-merkle-verify"
-version = "0.0.1"
+version = "0.1.0-SNAPSHOT"
 dependencies = [
  "solana-program",
 ]
@@ -2168,7 +2169,7 @@ dependencies = [
 
 [[package]]
 name = "jup-scripts"
-version = "0.0.1"
+version = "0.1.0-SNAPSHOT"
 dependencies = [
  "anchor-client",
  "anchor-lang",
@@ -2193,7 +2194,7 @@ dependencies = [
 
 [[package]]
 name = "kamino-airdrop-api"
-version = "0.0.1"
+version = "0.1.0-SNAPSHOT"
 dependencies = [
  "anchor-lang",
  "assert_matches",

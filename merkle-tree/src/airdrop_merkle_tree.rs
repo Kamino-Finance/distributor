@@ -120,7 +120,7 @@ impl AirdropMerkleTree {
         Ok(tree)
     }
 
-    /// Load a serialized merkle tree from file path
+    /// Load a json serialized merkle tree from file path
     pub fn new_from_file(path: &PathBuf) -> Result<Self> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
@@ -129,11 +129,27 @@ impl AirdropMerkleTree {
         Ok(tree)
     }
 
-    /// Write a merkle tree to a filepath
+    /// Write a json-serialised merkle tree to a filepath
     pub fn write_to_file(&self, path: &PathBuf) {
         let serialized = serde_json::to_string_pretty(&self).unwrap();
         let mut file = File::create(path).unwrap();
         file.write_all(serialized.as_bytes()).unwrap();
+    }
+
+    /// Load a blob serialized merkle tree from file path
+    pub fn new_from_blob(path: &PathBuf) -> Result<Self> {
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
+        let tree: AirdropMerkleTree = bincode::deserialize_from(&mut reader).unwrap();
+        Ok(tree)
+    }
+
+    /// Write a blob merkle tree to a filepath
+    pub fn write_blob_to_file(&self, path: &PathBuf) -> Result<()> {
+        let encoded: Vec<u8> = bincode::serialize(&self).unwrap();
+        let mut file = File::create(path)?;
+        file.write_all(&encoded)?;
+        Ok(())
     }
 
     pub fn get_node(&self, claimant: &Pubkey) -> TreeNode {

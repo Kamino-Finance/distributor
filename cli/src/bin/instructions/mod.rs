@@ -10,6 +10,8 @@ pub mod process_clawback;
 pub use process_clawback::*;
 pub mod process_create_merkle_tree;
 pub use process_create_merkle_tree::*;
+pub mod process_create_merkle_tree_blob;
+pub use process_create_merkle_tree_blob::*;
 pub mod process_set_admin;
 pub use process_set_admin::*;
 pub mod process_set_enable_slot;

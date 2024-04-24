@@ -10,7 +10,7 @@ pub fn process_create_merkle_tree(merkle_tree_args: &CreateMerkleTreeArgs) {
 
     let base_path = &merkle_tree_args.merkle_tree_path;
     let mut index = 0;
-    while csv_entries.len() > 0 {
+    while !csv_entries.is_empty() {
         let last_index = max_nodes_per_tree.min(csv_entries.len());
         let sub_tree = csv_entries[0..last_index].to_vec();
         csv_entries = csv_entries[last_index..csv_entries.len()].to_vec();

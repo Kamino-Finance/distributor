@@ -102,6 +102,8 @@ pub enum Commands {
     Clawback(ClawbackArgs),
     /// Create a Merkle tree, given a CSV of recipients
     CreateMerkleTree(CreateMerkleTreeArgs),
+    /// Serialize a JSON Merkle tree file into an architecture-specific blob
+    CreateMerkleTreeBlob(CreateMerkleTreeBlobArgs),
     SetAdmin(SetAdminArgs),
 
     SetEnableSlot(SetEnableSlotArgs),
@@ -252,6 +254,17 @@ pub struct CreateMerkleTreeArgs {
     pub amount: f64,
     #[clap(long, env)]
     pub decimals: u32,
+}
+
+#[derive(Parser, Debug)]
+pub struct CreateMerkleTreeBlobArgs {
+    /// JSON input path
+    #[clap(long, env)]
+    pub json_path: PathBuf,
+
+    /// Merkle tree out path
+    #[clap(long, env)]
+    pub merkle_tree_path: PathBuf,
 }
 
 #[derive(Parser, Debug)]
@@ -440,7 +453,7 @@ pub struct ViewDistributorsArgs {
     pub to_version: u64,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = Args::parse();
 
     match &args.command {
@@ -459,6 +472,9 @@ fn main() {
         Commands::Clawback(clawback_args) => process_clawback(&args, clawback_args),
         Commands::CreateMerkleTree(merkle_tree_args) => {
             process_create_merkle_tree(merkle_tree_args);
+        }
+        Commands::CreateMerkleTreeBlob(merkle_tree_blob_args) => {
+            process_create_merkle_tree_blob(merkle_tree_blob_args)?;
         }
         Commands::SetAdmin(set_admin_args) => {
             process_set_admin(&args, set_admin_args);
@@ -495,7 +511,8 @@ fn main() {
         Commands::SetClawbackReceiver(set_clawback_receiver_argrs) => {
             process_set_clawback_receiver(&args, set_clawback_receiver_argrs)
         }
-    }
+    };
+    Ok(())
 }
 
 fn check_distributor_onchain_matches(

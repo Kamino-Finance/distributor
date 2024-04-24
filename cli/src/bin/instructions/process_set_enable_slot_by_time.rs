@@ -128,12 +128,12 @@ pub fn get_average_slot_time(client: &RpcClient) -> Result<u64> {
 
     let mut total_time = 0;
     for sample in samples.iter() {
-        total_time = total_time + sample.sample_period_secs as u64 * 1000 / sample.num_slots;
+        total_time += sample.sample_period_secs as u64 * 1000 / sample.num_slots;
     }
 
     let average_time = total_time / num_samples;
     // sanity check
-    if average_time < DEFAULT_MS_PER_SLOT / 2 || average_time > DEFAULT_MS_PER_SLOT * 2 {
+    if !(DEFAULT_MS_PER_SLOT / 2..=DEFAULT_MS_PER_SLOT * 2).contains(&average_time) {
         println!("average_time is passed sanity check {}", average_time);
         return Ok(DEFAULT_MS_PER_SLOT);
     }

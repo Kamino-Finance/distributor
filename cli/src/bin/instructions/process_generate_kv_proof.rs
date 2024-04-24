@@ -41,7 +41,7 @@ pub fn process_generate_kv_proof(args: &Args, generate_kv_proof_args: &GenerateK
         );
 
         for node in merkle_tree.tree_nodes.iter() {
-            let user_pk = Pubkey::from(node.claimant);
+            let user_pk = node.claimant;
             proofs.insert(
                 user_pk.to_string(),
                 KvProof {
@@ -64,7 +64,7 @@ pub fn process_generate_kv_proof(args: &Args, generate_kv_proof_args: &GenerateK
             merkle_tree.airdrop_version
         );
     }
-    if proofs.len() > 0 {
+    if !proofs.is_empty() {
         write_to_file(generate_kv_proof_args, file_index, &proofs);
     }
 }

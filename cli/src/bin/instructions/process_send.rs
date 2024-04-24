@@ -126,7 +126,7 @@ pub fn process_mass_send(args: &Args, mass_send_args: &MassSendArgs) {
         index += 1;
     }
 
-    if batch_addresses.len() > 0 {
+    if !batch_addresses.is_empty() {
         wrap_batch_addresses.push(batch_addresses.clone());
     }
     println!(
@@ -182,17 +182,17 @@ pub fn process_resend(args: &Args, resend_args: &ResendSendArgs) {
         ) {
             Ok(value) => {
                 let mut should_resend = false;
-                if value.is_none() {
-                    println!("{} is not existed resend", signature);
-                    should_resend = true;
-                } else {
-                    match value.unwrap() {
+                if let Some(v) = value {
+                    match v {
                         Ok(_) => {}
                         Err(err) => {
                             println!("{} is error {}", signature, err);
                             should_resend = true;
                         }
                     }
+                } else {
+                    println!("{} is not existed resend", signature);
+                    should_resend = true;
                 }
 
                 if should_resend {

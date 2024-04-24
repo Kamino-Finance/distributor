@@ -74,7 +74,7 @@ fn create_new_distributor(args: &Args, new_distributor_args: &NewDistributorArgs
                 new_distributor_args,
                 keypair.pubkey(),
                 base.pubkey(),
-                &args,
+                args,
             ).expect("merkle root on-chain does not match provided arguments! Confirm admin and clawback parameters to avoid loss of funds!");
             continue;
         }

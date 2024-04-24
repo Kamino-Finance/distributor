@@ -55,46 +55,43 @@ pub fn process_close_claim_status(args: &Args) {
     let mut current_status_account = claim_status_accounts_iter.next();
 
     let mut close_ixs = vec![];
-    loop {
-        if let Some(value) = current_status_account {
-            close_ixs.push(Instruction {
-                program_id: args.program_id,
-                accounts: merkle_distributor::accounts::CloseClaimStatus {
-                    admin: keypair.pubkey(),
-                    claimant: value.1.claimant,
-                    claim_status: value.0,
-                }
-                .to_account_metas(None),
-                data: merkle_distributor::instruction::CloseClaimStatus {}.data(),
-            });
 
-            if close_ixs.len() >= numer_of_close_ix_per_transaction {
-                let client =
-                    RpcClient::new_with_commitment(&args.rpc_url, CommitmentConfig::finalized());
-                let blockhash = client.get_latest_blockhash().unwrap();
-                let tx = Transaction::new_signed_with_payer(
-                    &close_ixs,
-                    Some(&keypair.pubkey()),
-                    &[&keypair],
-                    blockhash,
-                );
-                match client.send_transaction(&tx) {
-                    Ok(_) => {
-                        println!("done close claim status {}", tx.get_signature());
-                        close_ixs = vec![];
-                    }
-                    Err(_e) => {
-                        println!("Failed to close claim status account");
-                    }
+    while let Some(value) = current_status_account {
+        close_ixs.push(Instruction {
+            program_id: args.program_id,
+            accounts: merkle_distributor::accounts::CloseClaimStatus {
+                admin: keypair.pubkey(),
+                claimant: value.1.claimant,
+                claim_status: value.0,
+            }
+            .to_account_metas(None),
+            data: merkle_distributor::instruction::CloseClaimStatus {}.data(),
+        });
+
+        if close_ixs.len() >= numer_of_close_ix_per_transaction {
+            let client =
+                RpcClient::new_with_commitment(&args.rpc_url, CommitmentConfig::finalized());
+            let blockhash = client.get_latest_blockhash().unwrap();
+            let tx = Transaction::new_signed_with_payer(
+                &close_ixs,
+                Some(&keypair.pubkey()),
+                &[&keypair],
+                blockhash,
+            );
+            match client.send_transaction(&tx) {
+                Ok(_) => {
+                    println!("done close claim status {}", tx.get_signature());
+                    close_ixs = vec![];
+                }
+                Err(_e) => {
+                    println!("Failed to close claim status account");
                 }
             }
-            current_status_account = claim_status_accounts_iter.next();
-        } else {
-            break;
         }
+        current_status_account = claim_status_accounts_iter.next();
     }
 
-    if close_ixs.len() > 0 {
+    if !close_ixs.is_empty() {
         let client = RpcClient::new_with_commitment(&args.rpc_url, CommitmentConfig::finalized());
         let blockhash = client.get_latest_blockhash().unwrap();
         let tx = Transaction::new_signed_with_payer(

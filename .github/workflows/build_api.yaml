@@ -1,4 +1,4 @@
-name: Kamino 
+name: API
 
 on:
   push:
@@ -48,7 +48,7 @@ jobs:
           secrets: |
             "aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID_DISTRIBUTOR_BUILD }}"
             "aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY_DISTRIBUTOR_BUILD }}"
-          file: ./Dockerfile
+          file: ./api/Dockerfile
           tags: hubbleprotocol/kamino-airdrop-api:${{ steps.set_versions.outputs.build_version }}
           push: true
           target: runtime
