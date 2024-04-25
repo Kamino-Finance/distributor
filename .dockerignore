@@ -8,6 +8,7 @@
 **/docs
 **/node_modules
 **/target
+**/helm
 **/test-ledger
 .dockerignore
 **/Dockerfile
