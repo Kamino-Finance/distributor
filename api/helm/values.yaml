@@ -28,4 +28,4 @@ service-base-chart:
     path: /health
     periodSeconds: 10
     timeoutSeconds: 2
-    initialDelaySeconds: 15
+    initialDelaySeconds: 3
