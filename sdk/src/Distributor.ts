@@ -56,6 +56,27 @@ export class Distributor {
     }
   }
 
+  async isClaimable(
+    merkleDistributorAddress: PublicKey,
+  ): Promise<boolean> {
+    const merkleDistributorState = await MerkleDistributor.fetch(
+      this._connection,
+      merkleDistributorAddress,
+    );
+
+    if(!merkleDistributorState) {
+      throw new Error("Merkle Distributor not found");
+    }
+
+    const currentSlot = await this._connection.getSlot();
+
+    if (new Decimal(merkleDistributorState.enableSlot.toString()).toNumber() >= currentSlot) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   async getNewClaimIx(
     merkleDistributorAddress: PublicKey,
     user: PublicKey,

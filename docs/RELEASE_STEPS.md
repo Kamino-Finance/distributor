@@ -68,7 +68,7 @@ target/debug/cli --mint $token_mint --priority-fee $priority_fee --keypair-path 
 - [ ] Run:
 Verify script to be used: 
 ```
-target/debug/cli --mint $token_mint --base $base_key --rpc-url $rpc verify --merkle-tree-path $merkle_tree_path --clawback-start-ts $clawback_start_ts --enable-slot  $enable_slot --admin $admin --clawback-receiver-owner $clawback_receiver_owner --skip_verify_amount
+target/debug/cli --mint $token_mint --base $base_key --rpc-url $rpc verify --merkle-tree-path $merkle_tree_path --clawback-start-ts $clawback_start_ts --enable-slot  $enable_slot --admin $admin --clawback-receiver-owner $clawback_receiver_owner --skip-verify-amount
 ```
 
 #### Create new s3 bucket to store the trees & update docker
@@ -105,3 +105,6 @@ target/debug/cli --mint $token_mint --base $base_key --rpc-url $rpc verify --mer
 ```
 
 #### Create Farm & Add to kamino resources 
+
+
+#### Give PROD API URL
