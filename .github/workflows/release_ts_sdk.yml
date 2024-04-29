@@ -33,9 +33,6 @@ jobs:
           exit 1
         if: github.ref != 'refs/heads/master'
 
-      - name: Change directory
-        run: cd sdk
-
       - name: Setup .npmrc file for publish
         uses: actions/setup-node@v3
         with:
@@ -49,13 +46,16 @@ jobs:
           git config --global user.email "dev@hubbleprotocol.io"
 
       - name: Install dependencies
+        working-directory: sdk
         run: |
           yarn install --frozen-lockfile
 
       - name: Build package
+        working-directory: sdk
         run: yarn build
 
       - name: Get latest version distributor-sdk
+        working-directory: sdk
         id: get_latest_version
         run: |
           latest_version=$(npm view @kamino-finance/distributor-sdk version)
@@ -77,9 +77,11 @@ jobs:
           VERBOSE: false
 
       - name: Publish to npm
+        working-directory: sdk
         run: yarn publish --new-version ${{ steps.semver.outputs.new_tag }}
 
       - name: Create git commit
+        working-directory: sdk
         # force push to avoid branch protection
         run: |
           yarn version --new-version ${{ steps.semver.outputs.new_tag }}
