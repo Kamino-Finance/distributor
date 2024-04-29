@@ -172,7 +172,7 @@ async function main() {
       const merkleTreesData = merkleTreePath
         ? readMerkleTreesDirectory(merkleTreePath)
         : new Map<string, ApiFormatData>();
-      const batchSize = 500;
+      const batchSize = 10000;
 
       const resultPromises: Promise<boolean>[] = [];
       for (

@@ -77,6 +77,21 @@ export class Distributor {
     }
   }
 
+  async getEnabledSlot(
+    merkleDistributorAddress: PublicKey,
+  ): Promise<number> {
+    const merkleDistributorState = await MerkleDistributor.fetch(
+      this._connection,
+      merkleDistributorAddress,
+    );
+
+    if(!merkleDistributorState) {
+      throw new Error("Merkle Distributor not found");
+    }
+
+    return new Decimal(merkleDistributorState.enableSlot.toString()).toNumber();
+  }
+
   async getNewClaimIx(
     merkleDistributorAddress: PublicKey,
     user: PublicKey,

@@ -81,6 +81,8 @@ Check `docs/create_s3_bucket.md`
 
 `aws s3 sync ./kmno_trees s3://k8s.hubbleprotocol.io-kamino-distributor/$mint`
 
+- [ ] Check in aws console that sync worked properly
+
 - [ ] Update docker API configuration to use newly created s3 bucket to sync from
 
 - [ ] Ensure the environemnt variables are updated for the helm chart in `api/helm/values.yaml`
@@ -101,16 +103,27 @@ or if you want to check against merkle trees and their proofs as well, run this:
 - [ ] using `api/load_test.sh`
 
 #### Fund distributor
+
+- [ ] Run:
 ```
 target/debug/cli --mint $token_mint --priority-fee $priority_fee --base $base_key --keypair-path $keypair_path --rpc-url $rpc --extra-send-rpc-url $extra_send_rpc_url fund-all --merkle-tree-path $merkle_tree_path
 ```
 
+- [ ] Run check script:
 Verify script can be used again (wihtout --skip_verify_amount flag this time)
 ```
 target/debug/cli --mint $token_mint --base $base_key --rpc-url $rpc verify --merkle-tree-path $merkle_tree_path --clawback-start-ts $clawback_start_ts --enable-slot  $enable_slot --admin $admin --clawback-receiver-owner $clawback_receiver_owner
 ```
 
+- [ ] Manual verification of amounts transfered:
+
 #### Create Farm & Add to kamino resources 
+
+- [ ] Create farm with farms cli
+
+- [ ] Set farm admin to multisig
+
+- [ ] Set rewards for the farm 
 
 
 #### Give PROD API URL

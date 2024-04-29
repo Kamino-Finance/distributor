@@ -78,6 +78,8 @@ clawback_rec: 7ZFB6zTTrHqSgCo9K6nYPZJwU7JQeYX9ygTpm3ew85Ng
 - [x] clawback-receiver-owner = BxdLNhoRXVs45wTVAZBrYQUkxbex5zXFCaJtsuRpoqMj
 - [x] enable-slot = 262927265
 
+262927265 - 262921575=  5690 * 0.5=    2845 / 60=47.416667
+
 - [x] version
 - [x] mint
 - [x] base
@@ -117,15 +119,17 @@ Verify merkle tree airdrop version 9 4gtwcLEDucFow87mBxJ5BpsW3hiRfP2Wc6GXUPgr9Kx
 
 Check `docs/create_s3_bucket.md` 
 
-- [ ] Run sync command from local to s3 bucket replacing the mint 
+- [x] Run sync command from local to s3 bucket replacing the mint 
 
 `aws s3 sync ./kmno_trees s3://k8s.hubbleprotocol.io-kamino-distributor/$mint`
+
+- [x] Check in aws console that sync worked properly
 
 - [x] Update docker API configuration to use newly created s3 bucket to sync from
 
 - [x] Ensure the environemnt variables are updated for the helm chart in `api/helm/values.yaml`
 
-- [ ] Merge these changes to master to publish a new docker image to be used. Ensure pod is reset.
+- [x] Merge these changes to master to publish a new docker image to be used. Ensure pod is reset.
 
 #### Check API returns matching values for each of the address, based on the .csv, and proofs based on /kmno_trees
 
@@ -138,13 +142,16 @@ or if you want to check against merkle trees and their proofs as well, run this:
 
 #### Load test prod api
 
-- [ ] using `api/load_test.sh`
+- [x] using `api/load_test.sh`
 
 #### Fund distributor
+
+- [x] Run:
 ```
 target/debug/cli --mint $token_mint --priority-fee $priority_fee --base $base_key --keypair-path $keypair_path --rpc-url $rpc --extra-send-rpc-url $extra_send_rpc_url fund-all --merkle-tree-path $merkle_tree_path
 ```
 
+- [x] Run check script:
 Verify script can be used again (wihtout --skip_verify_amount flag this time)
 ```
 target/debug/cli --mint $token_mint --base $base_key --rpc-url $rpc verify --merkle-tree-path $merkle_tree_path --clawback-start-ts $clawback_start_ts --enable-slot  $enable_slot --admin $admin --clawback-receiver-owner $clawback_receiver_owner
