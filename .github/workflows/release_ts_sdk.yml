@@ -33,6 +33,9 @@ jobs:
           exit 1
         if: github.ref != 'refs/heads/master'
 
+      - name: Change directory
+        run: cd sdk
+
       - name: Setup .npmrc file for publish
         uses: actions/setup-node@v3
         with:
