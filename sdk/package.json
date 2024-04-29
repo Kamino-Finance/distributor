@@ -1,6 +1,6 @@
 {
-  "name": "@hubbleprotocol/distributor",
-  "description": "Distributor SDK",
+  "name": "@kamino-finance/distributor-sdk",
+  "description": "Kamino Distributor SDK",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "version": "0.1.4",
