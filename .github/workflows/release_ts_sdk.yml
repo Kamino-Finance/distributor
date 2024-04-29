@@ -48,7 +48,6 @@ jobs:
       - name: Install dependencies
         working-directory: sdk
         run: |
-          cd sdk
           yarn install --frozen-lockfile
 
       - name: Build package
