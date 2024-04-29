@@ -39,7 +39,7 @@ RUN --mount=type=secret,id=aws_access_key_id \
     --mount=type=secret,id=aws_secret_access_key \
     AWS_ACCESS_KEY_ID=$(cat /run/secrets/aws_access_key_id) \
     AWS_SECRET_ACCESS_KEY=$(cat /run/secrets/aws_secret_access_key) \
-    aws s3 sync s3://k8s.hubbleprotocol.io-kamino-distributor/Gg5Y6LvxzDMVxArK7mcGM2vB4fiwcvUnYnviLM2uqjVY ./kmno_trees --exclude ".DS_Store" --include "*.json" \
+    aws s3 sync s3://k8s.hubbleprotocol.io-kamino-distributor/66CEH8e45SR9tjB1RmYdS7nUJWvjJdwGv4KAkkuxv7Wv ./kmno_trees --exclude ".DS_Store" --include "*.json" \
     && ./target/release/cli create-merkle-tree-blob --json-path ./kmno_trees --merkle-tree-path ./kmno_tree_blobs \
     && rm -rf ./kmno_trees
 
@@ -52,6 +52,9 @@ COPY --from=build /distributor/target/release/kamino-airdrop-api ./
 COPY --from=build /distributor/kmno_tree_blobs ./distributor/kmno_trees/
 
 ENV MERKLE_TREE_PATH=./distributor/kmno_trees/
+ENV RUST_BACKTRACE=full
+ENV RUST_LOG=info
+ENV PROGRAM_ID=KdisqEcXbXKaTrBFqeDLhMmBvymLTwj9GmhDcdJyGat 
 
 ENTRYPOINT ["./kamino-airdrop-api"]
 

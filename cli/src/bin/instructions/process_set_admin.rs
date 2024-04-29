@@ -6,6 +6,8 @@ pub fn process_set_admin(args: &Args, set_admin_args: &SetAdminArgs) {
         .expect("Failed reading keypair file");
 
     let client = RpcClient::new_with_commitment(&args.rpc_url, CommitmentConfig::confirmed());
+    let send_client =
+        RpcClient::new_with_commitment(&args.extra_send_rpc_url, CommitmentConfig::confirmed());
     let program = args.get_program_client();
 
     let mut paths: Vec<_> = fs::read_dir(&set_admin_args.merkle_tree_path)
@@ -61,7 +63,7 @@ pub fn process_set_admin(args: &Args, set_admin_args: &SetAdminArgs) {
                 client.get_latest_blockhash().unwrap(),
             );
 
-            match client.send_transaction(&tx) {
+            match send_transaction::send_transaction(&tx, &client, &send_client) {
                 Ok(signature) => {
                     println!(
                         "Successfully set admin {} airdrop version {} ! signature: {signature:#?}",
