@@ -149,3 +149,4 @@ list/
 keys/**/*.json
 kmno_trees/
 kmno_tree_blobs/
+docs/KMNO_RELEASE_STEPS.md
