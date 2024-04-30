@@ -5,9 +5,9 @@ service-base-chart:
     tag: latest
   envVars:
    - name: MINT
-     value: 66CEH8e45SR9tjB1RmYdS7nUJWvjJdwGv4KAkkuxv7Wv
+     value: KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS
    - name: BASE
-     value: CWkJGg7EphboQ3a5zcVP8wsJ74jiVR4BsyuTgqAsvPNP
+     value: GKcx3UXQwUEnfAUzumN5BgvoKNFHb9fBZbG9jiKE5Bz7
 
   containerPorts:
   - name: http
