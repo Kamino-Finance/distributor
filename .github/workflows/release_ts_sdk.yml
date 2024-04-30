@@ -84,11 +84,12 @@ jobs:
         working-directory: sdk
         # force push to avoid branch protection
         run: |
+          yarn config set version-git-message "@kamino-finance/distributor-sdk:%s"
           yarn version --new-version ${{ steps.semver.outputs.new_tag }}
           git push --force origin master
 
       - name: Create Git tag
         if: steps.semver.outputs.tag_created == 'true'
         run: |
-          git tag "v${{ steps.semver.outputs.new_tag }}"
+          git tag "@kamino-finance/distributor-sdk${{ steps.semver.outputs.new_tag }}"
           git push origin ${{ steps.semver.outputs.new_tag }}
