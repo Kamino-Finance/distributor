@@ -126,7 +126,10 @@ pub mod merkle_distributor {
     }
 
     #[allow(clippy::result_large_err)]
-    pub fn set_clawback_start_ts(ctx: Context<SetClawbackStartTs>, clawback_start_ts: i64) -> Result<()> {
+    pub fn set_clawback_start_ts(
+        ctx: Context<SetClawbackStartTs>,
+        clawback_start_ts: i64,
+    ) -> Result<()> {
         handle_set_clawback_start_ts(ctx, clawback_start_ts)
     }
 }
