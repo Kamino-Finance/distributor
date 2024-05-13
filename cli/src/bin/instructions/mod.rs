@@ -16,6 +16,8 @@ pub mod process_set_admin;
 pub use process_set_admin::*;
 pub mod process_set_enable_slot;
 pub use process_set_enable_slot::*;
+pub mod process_set_clawback_start_ts;
+pub use process_set_clawback_start_ts::*;
 pub mod process_set_enable_slot_by_time;
 pub use process_set_enable_slot_by_time::*;
 pub mod process_fund_all;

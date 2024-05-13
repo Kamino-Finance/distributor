@@ -68,6 +68,10 @@ pub struct Args {
     /// Priority fee
     #[clap(long, env)]
     pub priority_fee: Option<u64>,
+
+    /// Encode the transaction in base58 and print for multisig - instead of executing
+    #[clap(long, env, takes_value = false)]
+    bs58: bool,
 }
 
 impl Args {
@@ -283,6 +287,16 @@ pub struct SetEnableSlotArgs {
     pub to_version: u64,
     #[clap(long, env)]
     pub slot: u64,
+}
+
+#[derive(Parser, Debug)]
+pub struct SetClawbackStartTsArgs {
+    #[clap(long, env)]
+    pub from_version: u64,
+    #[clap(long, env)]
+    pub to_version: u64,
+    #[clap(long, env)]
+    pub clawback_start_ts: i64,
 }
 
 #[derive(Parser, Debug)]
