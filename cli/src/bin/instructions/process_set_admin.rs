@@ -58,18 +58,17 @@ pub fn process_set_admin(args: &Args, set_admin_args: &SetAdminArgs) {
                 data: merkle_distributor::instruction::SetAdmin {}.data(),
             });
 
-            let tx = Transaction::new_signed_with_payer(
-                &ixs,
-                Some(&keypair.pubkey()),
-                &[&keypair],
-                client.get_latest_blockhash().unwrap(),
-            );
-
             if args.bs58 {
                 let msg = Message::new(&ixs, Some(&distributor_state.admin));
                 println!("{}", bs58::encode(msg.serialize()).into_string());
                 break;
             } else {
+                let tx = Transaction::new_signed_with_payer(
+                    &ixs,
+                    Some(&keypair.pubkey()),
+                    &[&keypair],
+                    client.get_latest_blockhash().unwrap(),
+                );
                 match send_transaction::send_transaction(&tx, &client, &send_client) {
                     Ok(signature) => {
                         println!(

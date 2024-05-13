@@ -57,25 +57,24 @@ pub fn process_set_clawback_receiver(
                 program_id: args.program_id,
                 accounts: merkle_distributor::accounts::SetClawbackReceiver {
                     distributor,
-                    admin: keypair.pubkey(),
+                    admin: distributor_state.admin,
                     new_clawback_account,
                 }
                 .to_account_metas(None),
                 data: merkle_distributor::instruction::SetClawbackReceiver {}.data(),
             });
 
-            let tx = Transaction::new_signed_with_payer(
-                &ixs,
-                Some(&keypair.pubkey()),
-                &[&keypair],
-                client.get_latest_blockhash().unwrap(),
-            );
-
             if args.bs58 {
                 let msg = Message::new(&ixs, Some(&distributor_state.admin));
                 println!("{}", bs58::encode(msg.serialize()).into_string());
                 break;
             } else {
+                let tx = Transaction::new_signed_with_payer(
+                    &ixs,
+                    Some(&keypair.pubkey()),
+                    &[&keypair],
+                    client.get_latest_blockhash().unwrap(),
+                );
                 match client.send_transaction(&tx) {
                     Ok(signature) => {
                         println!(
