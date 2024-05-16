@@ -43,6 +43,11 @@ pub fn handle_set_clawback_start_ts(
         ErrorCode::InsufficientClawbackDelay
     );
 
+    msg!("Setting clawback_start_ts");
+    msg!("curr={:?}", distributor.clawback_start_ts);
+    msg!("prev={:?}", clawback_start_ts);
+
     distributor.clawback_start_ts = clawback_start_ts;
+
     Ok(())
 }
