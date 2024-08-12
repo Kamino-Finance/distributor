@@ -113,6 +113,8 @@ pub enum Commands {
     SetEnableSlot(SetEnableSlotArgs),
     SetEnableSlotByTime(SetEnableSlotByTimeArgs),
 
+    SetClawbackStartTs(SetClawbackStartTsArgs),
+
     FundAll(FundAllArgs),
     Verify(VerifyArgs),
     SlotByTime(SlotByTimeArgsArgs),
@@ -495,6 +497,9 @@ fn main() -> Result<()> {
         }
         Commands::SetEnableSlot(set_enable_slot_args) => {
             process_set_enable_slot(&args, set_enable_slot_args);
+        }
+        Commands::SetClawbackStartTs(set_clawback_start_ts_args) => {
+            process_set_clawback_start_ts(&args, set_clawback_start_ts_args);
         }
         Commands::SetEnableSlotByTime(set_enable_slot_by_time_args) => {
             process_set_enable_slot_by_time(&args, set_enable_slot_by_time_args);

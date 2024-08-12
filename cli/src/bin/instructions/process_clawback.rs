@@ -65,7 +65,7 @@ pub fn process_clawback(args: &Args, clawback_args: &ClawbackArgs) {
                 client.get_latest_blockhash().unwrap(),
             );
 
-            match client.send_transaction(&tx) {
+            match send_transaction::send_transaction(&tx, &client, &client) {
                 Ok(signature) => {
                     println!(
                         "Successfully clawback airdrop version {} ! signature: {signature:#?}",
