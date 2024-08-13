@@ -28,7 +28,8 @@ FROM chef AS build
 COPY --from=prepare /distributor/recipe.json recipe.json
 
 # Build dependencies - this is the caching Docker layer!
-RUN cargo chef cook --release --bin kamino-airdrop-api --bin cli --recipe-path recipe.json
+RUN cargo chef cook --release --bin kamino-airdrop-api --recipe-path recipe.json
+RUN cargo chef cook --release --bin cli --recipe-path recipe.json
 
 # Build application
 COPY . .
