@@ -35,6 +35,8 @@ RUN cargo chef cook --release --bin cli --recipe-path recipe.json
 COPY . .
 RUN cargo build --release --bin kamino-airdrop-api --bin cli --locked
 
+ENV AWS_DEFAULT_REGION="eu-west-1"
+
 # Download the merkle tree json files and convert them to blobs in one step to reduce cache layer size
 RUN --mount=type=secret,id=aws_access_key_id \
     --mount=type=secret,id=aws_secret_access_key \
