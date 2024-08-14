@@ -56,36 +56,35 @@ export class Distributor {
     }
   }
 
-  async isClaimable(
-    merkleDistributorAddress: PublicKey,
-  ): Promise<boolean> {
+  async isClaimable(merkleDistributorAddress: PublicKey): Promise<boolean> {
     const merkleDistributorState = await MerkleDistributor.fetch(
       this._connection,
       merkleDistributorAddress,
     );
 
-    if(!merkleDistributorState) {
+    if (!merkleDistributorState) {
       throw new Error("Merkle Distributor not found");
     }
 
     const currentSlot = await this._connection.getSlot();
 
-    if (new Decimal(merkleDistributorState.enableSlot.toString()).toNumber() >= currentSlot) {
+    if (
+      new Decimal(merkleDistributorState.enableSlot.toString()).toNumber() >=
+      currentSlot
+    ) {
       return false;
     } else {
       return true;
     }
   }
 
-  async getEnabledSlot(
-    merkleDistributorAddress: PublicKey,
-  ): Promise<number> {
+  async getEnabledSlot(merkleDistributorAddress: PublicKey): Promise<number> {
     const merkleDistributorState = await MerkleDistributor.fetch(
       this._connection,
       merkleDistributorAddress,
     );
 
-    if(!merkleDistributorState) {
+    if (!merkleDistributorState) {
       throw new Error("Merkle Distributor not found");
     }
 
