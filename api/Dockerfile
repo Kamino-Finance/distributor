@@ -42,7 +42,7 @@ RUN --mount=type=secret,id=aws_access_key_id \
     --mount=type=secret,id=aws_secret_access_key \
     AWS_ACCESS_KEY_ID=$(cat /run/secrets/aws_access_key_id) \
     AWS_SECRET_ACCESS_KEY=$(cat /run/secrets/aws_secret_access_key) \
-    aws s3 sync s3://k8s.hubbleprotocol.io-kamino-distributor/GwjzR5QkgBw4aQAxkJTCE6Uuw7za4kRn7x9Df45qCZkW ./kmno_trees --exclude ".DS_Store" --include "*.json" --debug \
+    aws s3 sync s3://k8s.hubbleprotocol.io-kamino-distributor/KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS_season2 ./kmno_trees --exclude ".DS_Store" --include "*.json" --debug \
     && ./target/release/cli create-merkle-tree-blob --json-path ./kmno_trees --merkle-tree-path ./kmno_tree_blobs \
     && rm -rf ./kmno_trees
 
