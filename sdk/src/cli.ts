@@ -23,6 +23,7 @@ import {
 import { Distributor } from "./Distributor";
 import * as fs from "fs";
 import Decimal from "decimal.js";
+import { AnchorProvider } from "@coral-xyz/anchor";
 
 const microLamport = 5 * 10 ** 6; // 1 lamport
 const computeUnits = 1_000_000;
@@ -162,6 +163,26 @@ async function main() {
     });
 
   commands
+    .command("check-user-claim-status")
+    .requiredOption("--api-url-base, <string>", "API URL base")
+    .option("--user-address, <string>", "User address to cehck against")
+    .option("--user-address-file, <string>", "User address to cehck against")
+    .action(async ({ apiUrlBase, userAddress, userAddressFile }) => {
+      const { provider } = initializeClient();
+      if(userAddressFile) {
+        const rawData = fs.readFileSync(userAddressFile, "utf8");
+        const users: string[] = JSON.parse(rawData);
+
+        for (const user of users) {
+          await checkUserClaimStatus(new PublicKey(user), provider, apiUrlBase);
+        }
+      } else if (userAddress){
+        const user = new PublicKey(userAddress);
+        await checkUserClaimStatus(user, provider, apiUrlBase);
+      }
+  });
+
+  commands
     .command("check-api-returns-all-keys")
     .requiredOption("--api-url, <string>", "Distributor file")
     .requiredOption("--csv-path, <string>", "Csv for distribution path")
@@ -265,4 +286,27 @@ async function checkAgainstApi(
   }
 
   return true;
+}
+
+async function checkUserClaimStatus(user: PublicKey, provider: AnchorProvider, apiUrlBase: string) {
+  const apiResponse: ClaimApiResponse = await retryAsync(async () =>
+    noopProfiledFunctionExecution(
+      fetchUserDataFromApi(user, apiUrlBase),
+    ),
+  );
+
+  const merkleDistributor = new PublicKey(apiResponse.merkle_tree);
+
+  
+  const distributorClient = new Distributor(provider.connection);
+  const claimed = await distributorClient.userClaimed(
+    new PublicKey(merkleDistributor),
+    new PublicKey(user),
+  );
+
+  if (claimed) {
+    console.log("User " + user.toBase58() + " has already claimed his allocation: " + apiResponse.amount);
+  } else {
+    console.log("User " + user.toBase58() + " has not claimed his allocation: " + apiResponse.amount);
+  }
 }
