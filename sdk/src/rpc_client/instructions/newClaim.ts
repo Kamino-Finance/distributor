@@ -1,6 +1,6 @@
 import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@project-serum/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
 export interface NewClaimArgs {
@@ -32,7 +32,11 @@ export const layout = borsh.struct([
   borsh.vec(borsh.array(borsh.u8(), 32), "proof"),
 ])
 
-export function newClaim(args: NewClaimArgs, accounts: NewClaimAccounts) {
+export function newClaim(
+  args: NewClaimArgs,
+  accounts: NewClaimAccounts,
+  programId: PublicKey = PROGRAM_ID
+) {
   const keys: Array<AccountMeta> = [
     { pubkey: accounts.distributor, isSigner: false, isWritable: true },
     { pubkey: accounts.claimStatus, isSigner: false, isWritable: true },
@@ -53,6 +57,6 @@ export function newClaim(args: NewClaimArgs, accounts: NewClaimAccounts) {
     buffer
   )
   const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix = new TransactionInstruction({ keys, programId: PROGRAM_ID, data })
+  const ix = new TransactionInstruction({ keys, programId, data })
   return ix
 }

@@ -1,6 +1,6 @@
 import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@project-serum/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
 export interface CloseClaimStatusAccounts {
@@ -10,7 +10,10 @@ export interface CloseClaimStatusAccounts {
 }
 
 /** only available in test phase */
-export function closeClaimStatus(accounts: CloseClaimStatusAccounts) {
+export function closeClaimStatus(
+  accounts: CloseClaimStatusAccounts,
+  programId: PublicKey = PROGRAM_ID
+) {
   const keys: Array<AccountMeta> = [
     { pubkey: accounts.claimStatus, isSigner: false, isWritable: true },
     { pubkey: accounts.claimant, isSigner: false, isWritable: true },
@@ -18,6 +21,6 @@ export function closeClaimStatus(accounts: CloseClaimStatusAccounts) {
   ]
   const identifier = Buffer.from([163, 214, 191, 165, 245, 188, 17, 185])
   const data = identifier
-  const ix = new TransactionInstruction({ keys, programId: PROGRAM_ID, data })
+  const ix = new TransactionInstruction({ keys, programId, data })
   return ix
 }

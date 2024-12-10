@@ -1,6 +1,6 @@
 import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@project-serum/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
 export interface ClaimLockedAccounts {
@@ -21,7 +21,10 @@ export interface ClaimLockedAccounts {
   tokenProgram: PublicKey
 }
 
-export function claimLocked(accounts: ClaimLockedAccounts) {
+export function claimLocked(
+  accounts: ClaimLockedAccounts,
+  programId: PublicKey = PROGRAM_ID
+) {
   const keys: Array<AccountMeta> = [
     { pubkey: accounts.distributor, isSigner: false, isWritable: true },
     { pubkey: accounts.claimStatus, isSigner: false, isWritable: true },
@@ -32,6 +35,6 @@ export function claimLocked(accounts: ClaimLockedAccounts) {
   ]
   const identifier = Buffer.from([34, 206, 181, 23, 11, 207, 147, 90])
   const data = identifier
-  const ix = new TransactionInstruction({ keys, programId: PROGRAM_ID, data })
+  const ix = new TransactionInstruction({ keys, programId, data })
   return ix
 }

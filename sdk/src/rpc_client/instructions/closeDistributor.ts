@@ -1,6 +1,6 @@
 import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@project-serum/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
 export interface CloseDistributorAccounts {
@@ -20,7 +20,10 @@ export interface CloseDistributorAccounts {
 }
 
 /** only available in test phase */
-export function closeDistributor(accounts: CloseDistributorAccounts) {
+export function closeDistributor(
+  accounts: CloseDistributorAccounts,
+  programId: PublicKey = PROGRAM_ID
+) {
   const keys: Array<AccountMeta> = [
     { pubkey: accounts.distributor, isSigner: false, isWritable: true },
     { pubkey: accounts.tokenVault, isSigner: false, isWritable: true },
@@ -34,6 +37,6 @@ export function closeDistributor(accounts: CloseDistributorAccounts) {
   ]
   const identifier = Buffer.from([202, 56, 180, 143, 46, 104, 106, 112])
   const data = identifier
-  const ix = new TransactionInstruction({ keys, programId: PROGRAM_ID, data })
+  const ix = new TransactionInstruction({ keys, programId, data })
   return ix
 }

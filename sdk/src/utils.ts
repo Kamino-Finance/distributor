@@ -1,5 +1,4 @@
 import * as anchor from "@coral-xyz/anchor";
-import { TOKEN_PROGRAM_ID } from "@project-serum/serum/lib/token-instructions";
 import {
   Connection,
   Keypair,
@@ -9,7 +8,11 @@ import {
   ComputeBudgetProgram,
 } from "@solana/web3.js";
 import { Decimal } from "decimal.js";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
+import {
+  TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress as getAta,
+  createAssociatedTokenAccountInstruction
+} from "@solana/spl-token";
 import DISTRIBUTORIDL from "./rpc_client/merkle_distributor.json";
 import * as fs from "fs";
 
@@ -42,12 +45,11 @@ export async function getAssociatedTokenAddress(
   owner: PublicKey,
   tokenMintAddress: PublicKey,
 ): Promise<PublicKey> {
-  return await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID, // always ASSOCIATED_TOKEN_PROGRAM_ID
-    TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
+  return await getAta(
     tokenMintAddress, // mint
     owner, // owner
     true,
+    TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
   );
 }
 
@@ -56,13 +58,12 @@ export async function createAtaInstruction(
   tokenMintAddress: PublicKey,
   ata: PublicKey,
 ): Promise<TransactionInstruction> {
-  return Token.createAssociatedTokenAccountInstruction(
-    ASSOCIATED_TOKEN_PROGRAM_ID, // always ASSOCIATED_TOKEN_PROGRAM_ID
-    TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
-    tokenMintAddress, // mint
+  return createAssociatedTokenAccountInstruction(
+    owner, // fee payer
     ata, // ata
     owner, // owner of token account
-    owner, // fee payer
+    tokenMintAddress, // mint
+    TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
   );
 }
 

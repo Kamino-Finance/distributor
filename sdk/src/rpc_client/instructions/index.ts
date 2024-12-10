@@ -19,3 +19,8 @@ export { setClawbackReceiver } from "./setClawbackReceiver"
 export type { SetClawbackReceiverAccounts } from "./setClawbackReceiver"
 export { setAdmin } from "./setAdmin"
 export type { SetAdminAccounts } from "./setAdmin"
+export { setClawbackStartTs } from "./setClawbackStartTs"
+export type {
+  SetClawbackStartTsArgs,
+  SetClawbackStartTsAccounts,
+} from "./setClawbackStartTs"
