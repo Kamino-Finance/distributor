@@ -7,7 +7,7 @@ service-base-chart:
    - name: MINT
      value: KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS
    - name: BASE
-     value: GhUyuanGbv2B2iLcueRy25Yo1W8UEeR6c8onQ4yD976p
+     value: 3PgbUqrULHTQ2oYWyXd3mSfBCmgzZFzzYGeNajw4ydqJ
 
   containerPorts:
   - name: http

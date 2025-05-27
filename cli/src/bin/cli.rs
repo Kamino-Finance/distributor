@@ -257,8 +257,6 @@ pub struct CreateMerkleTreeArgs {
     pub max_nodes_per_tree: u64,
 
     #[clap(long, env)]
-    pub amount: f64,
-    #[clap(long, env)]
     pub decimals: u32,
 }
 

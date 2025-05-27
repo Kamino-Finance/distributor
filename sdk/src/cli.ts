@@ -5,6 +5,7 @@ import {
   sendAndConfirmTransaction,
   Transaction,
 } from "@solana/web3.js";
+import dotenv from "dotenv";
 import {
   ApiFormatData,
   ClaimApiResponse,
@@ -24,6 +25,7 @@ import { Distributor } from "./Distributor";
 import * as fs from "fs";
 import Decimal from "decimal.js";
 import { AnchorProvider } from "@coral-xyz/anchor";
+import { lamportsToCollDecimal } from './utils';
 
 const microLamport = 5 * 10 ** 6; // 1 lamport
 const computeUnits = 1_000_000;
@@ -70,13 +72,13 @@ async function main() {
       console.log(
         JSON.parse(
           JSON.stringify({
-            distributionTotalClaimed:
-              distributorsStats.distributionTotalClaimed,
-            distributionMaxTotalClaim:
-              distributorsStats.distributionMaxTotalClaim,
-            distributionTotalUsers: distributorsStats.distributionTotalUsers,
-            distributionTotalUsersClaimed:
+            claimed:
+              distributorsStats.distributionTotalClaimed.div(10**6).toFixed(6),
+            unclaimed:
+              distributorsStats.distributionMaxTotalClaim.div(10**6).toFixed(6),
+            walletsClaimed:
               distributorsStats.distributionTotalUsersClaimed,
+            walletsUnclaimed: distributorsStats.distributionTotalUsers - distributorsStats.distributionTotalUsersClaimed,
           }),
         ),
       );
@@ -193,7 +195,7 @@ async function main() {
       const merkleTreesData = merkleTreePath
         ? readMerkleTreesDirectory(merkleTreePath)
         : new Map<string, ApiFormatData>();
-      const batchSize = 10000;
+      const batchSize = 1000;
 
       const resultPromises: Promise<boolean>[] = [];
       for (
@@ -297,6 +299,15 @@ async function checkUserClaimStatus(
     noopProfiledFunctionExecution(fetchUserDataFromApi(user, apiUrlBase)),
   );
 
+  if(apiResponse.merkle_tree === undefined) {
+    console.log(
+      "User " +
+        user.toBase58() +
+        " had no allocation" 
+    );
+    return;
+  }
+
   const merkleDistributor = new PublicKey(apiResponse.merkle_tree);
 
   const distributorClient = new Distributor(provider.connection);
@@ -310,14 +321,14 @@ async function checkUserClaimStatus(
       "User " +
         user.toBase58() +
         " has already claimed his allocation: " +
-        apiResponse.amount,
+        lamportsToCollDecimal(new Decimal(apiResponse.amount), 6).toString()
     );
   } else {
     console.log(
       "User " +
         user.toBase58() +
         " has not claimed his allocation: " +
-        apiResponse.amount,
+        lamportsToCollDecimal(new Decimal(apiResponse.amount), 6).toString(),
     );
   }
 }
