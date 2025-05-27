@@ -2,7 +2,7 @@
 
 set -e
 
-export base_url="https://airdrop.kamino.finance/distributor/user"
+export base_url="https://api.kamino.finance/distributor/user"
 
 max_concurrency=10
 
@@ -18,7 +18,7 @@ function cleanup() {
 trap cleanup EXIT
 
 # Read the CSV file and skip the header line
-tail -n +2 list/kmno_allocation.csv | awk -F, '{print $1}' | \
+tail -n +2 list/kamino_s2_allocation.csv | awk -F, '{print $1}' | \
 xargs -n1 -S1024 -P$max_concurrency -I {} sh -c '{
     # Make a request and capture only the HTTP status code
     http_status=$(curl -s -o /dev/null -w "%{http_code}" "${base_url}/{}")
