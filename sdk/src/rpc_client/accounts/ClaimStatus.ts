@@ -1,11 +1,22 @@
-import { PublicKey, Connection } from "@solana/web3.js"
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  address,
+  Address,
+  fetchEncodedAccount,
+  fetchEncodedAccounts,
+  GetAccountInfoApi,
+  GetMultipleAccountsApi,
+  Rpc,
+} from "@solana/kit"
+/* eslint-enable @typescript-eslint/no-unused-vars */
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
 export interface ClaimStatusFields {
   /** Authority that claimed the tokens. */
-  claimant: PublicKey
+  claimant: Address
   /** Locked amount */
   lockedAmount: BN
   /** Locked amount withdrawn */
@@ -15,7 +26,7 @@ export interface ClaimStatusFields {
   /** indicate that whether admin can close this account, for testing purpose */
   closable: boolean
   /** admin of merkle tree, store for for testing purpose */
-  admin: PublicKey
+  admin: Address
 }
 
 export interface ClaimStatusJSON {
@@ -36,7 +47,7 @@ export interface ClaimStatusJSON {
 /** Holds whether or not a claimant has claimed tokens. */
 export class ClaimStatus {
   /** Authority that claimed the tokens. */
-  readonly claimant: PublicKey
+  readonly claimant: Address
   /** Locked amount */
   readonly lockedAmount: BN
   /** Locked amount withdrawn */
@@ -46,19 +57,19 @@ export class ClaimStatus {
   /** indicate that whether admin can close this account, for testing purpose */
   readonly closable: boolean
   /** admin of merkle tree, store for for testing purpose */
-  readonly admin: PublicKey
+  readonly admin: Address
 
   static readonly discriminator = Buffer.from([
     22, 183, 249, 157, 247, 95, 150, 96,
   ])
 
-  static readonly layout = borsh.struct([
-    borsh.publicKey("claimant"),
+  static readonly layout = borsh.struct<ClaimStatus>([
+    borshAddress("claimant"),
     borsh.u64("lockedAmount"),
     borsh.u64("lockedAmountWithdrawn"),
     borsh.u64("unlockedAmount"),
     borsh.bool("closable"),
-    borsh.publicKey("admin"),
+    borshAddress("admin"),
   ])
 
   constructor(fields: ClaimStatusFields) {
@@ -71,38 +82,42 @@ export class ClaimStatus {
   }
 
   static async fetch(
-    c: Connection,
-    address: PublicKey,
-    programId: PublicKey = PROGRAM_ID
+    rpc: Rpc<GetAccountInfoApi>,
+    address: Address,
+    programId: Address = PROGRAM_ID
   ): Promise<ClaimStatus | null> {
-    const info = await c.getAccountInfo(address)
+    const info = await fetchEncodedAccount(rpc, address)
 
-    if (info === null) {
+    if (!info.exists) {
       return null
     }
-    if (!info.owner.equals(programId)) {
-      throw new Error("account doesn't belong to this program")
+    if (info.programAddress !== programId) {
+      throw new Error(
+        `ClaimStatusFields account ${address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+      )
     }
 
-    return this.decode(info.data)
+    return this.decode(Buffer.from(info.data))
   }
 
   static async fetchMultiple(
-    c: Connection,
-    addresses: PublicKey[],
-    programId: PublicKey = PROGRAM_ID
+    rpc: Rpc<GetMultipleAccountsApi>,
+    addresses: Address[],
+    programId: Address = PROGRAM_ID
   ): Promise<Array<ClaimStatus | null>> {
-    const infos = await c.getMultipleAccountsInfo(addresses)
+    const infos = await fetchEncodedAccounts(rpc, addresses)
 
     return infos.map((info) => {
-      if (info === null) {
+      if (!info.exists) {
         return null
       }
-      if (!info.owner.equals(programId)) {
-        throw new Error("account doesn't belong to this program")
+      if (info.programAddress !== programId) {
+        throw new Error(
+          `ClaimStatusFields account ${info.address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+        )
       }
 
-      return this.decode(info.data)
+      return this.decode(Buffer.from(info.data))
     })
   }
 
@@ -125,23 +140,23 @@ export class ClaimStatus {
 
   toJSON(): ClaimStatusJSON {
     return {
-      claimant: this.claimant.toString(),
+      claimant: this.claimant,
       lockedAmount: this.lockedAmount.toString(),
       lockedAmountWithdrawn: this.lockedAmountWithdrawn.toString(),
       unlockedAmount: this.unlockedAmount.toString(),
       closable: this.closable,
-      admin: this.admin.toString(),
+      admin: this.admin,
     }
   }
 
   static fromJSON(obj: ClaimStatusJSON): ClaimStatus {
     return new ClaimStatus({
-      claimant: new PublicKey(obj.claimant),
+      claimant: address(obj.claimant),
       lockedAmount: new BN(obj.lockedAmount),
       lockedAmountWithdrawn: new BN(obj.lockedAmountWithdrawn),
       unlockedAmount: new BN(obj.unlockedAmount),
       closable: obj.closable,
-      admin: new PublicKey(obj.admin),
+      admin: address(obj.admin),
     })
   }
 }

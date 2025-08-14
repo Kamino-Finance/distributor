@@ -9,8 +9,9 @@
     "build:watch": "tsc -w",
     "format": "prettier --check ./**/*.ts",
     "format:fix": "prettier --write ./**/*.ts",
-    "anchor-client-gen:clean": "rm -rf src/rpc_client",
-    "anchor-client-gen": "anchor-client-gen ../target/idl/merkle_distributor.json src/rpc_client --program-id KdisqEcXbXKaTrBFqeDLhMmBvymLTwj9GmhDcdJyGat && cp ../target/idl/merkle_distributor.json src/rpc_client/merkle_distributor.json"
+    "anchor-client-gen": "yarn tsx ./node_modules/anchor-client-gen/src/main.ts",
+    "codegen:clean": "rm -rf src/rpc_client",
+    "codegen": "yarn anchor-client-gen ../target/idl/merkle_distributor.json src/rpc_client --program-id KdisqEcXbXKaTrBFqeDLhMmBvymLTwj9GmhDcdJyGat && cp ../target/idl/merkle_distributor.json src/rpc_client/merkle_distributor.json"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,9 @@
     "@coral-xyz/anchor": "^0.28.0",
     "@coral-xyz/borsh": "^0.28.0",
     "@solana/spl-token": "^0.4.9",
+    "@solana-program/token": "^0.5.1",
+    "@solana/compat": "^2.3.0",
+    "@solana/kit": "^2.3.0",
     "@solana/web3.js": "^1.95.8",
     "dotenv": "^10.0.0",
     "bn.js": "^5.2.1",
@@ -32,10 +36,11 @@
   "devDependencies": {
     "@solana/spl-governance": "0.0.34",
     "@types/mocha": "^9.1.0",
-    "anchor-client-gen": "^0.28.1",
+    "anchor-client-gen": "git+https://github.com/kklas/anchor-client-gen.git",
     "mocha": "^9.1.4",
     "prettier": "^3.1.1",
     "ts-mocha": "^10.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },
   "publishConfig": {

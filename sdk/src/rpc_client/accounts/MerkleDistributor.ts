@@ -1,6 +1,17 @@
-import { PublicKey, Connection } from "@solana/web3.js"
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  address,
+  Address,
+  fetchEncodedAccount,
+  fetchEncodedAccounts,
+  GetAccountInfoApi,
+  GetMultipleAccountsApi,
+  Rpc,
+} from "@solana/kit"
+/* eslint-enable @typescript-eslint/no-unused-vars */
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
 export interface MerkleDistributorFields {
@@ -11,11 +22,11 @@ export interface MerkleDistributorFields {
   /** The 256-bit merkle root. */
   root: Array<number>
   /** [Mint] of the token to be distributed. */
-  mint: PublicKey
+  mint: Address
   /** base key of distributor. */
-  base: PublicKey
+  base: Address
   /** Token Address of the vault */
-  tokenVault: PublicKey
+  tokenVault: Address
   /** Maximum number of tokens that can ever be claimed from this [MerkleDistributor]. */
   maxTotalClaim: BN
   /** Maximum number of nodes in [MerkleDistributor]. */
@@ -31,9 +42,9 @@ export interface MerkleDistributorFields {
   /** Clawback start (Unix Timestamp) */
   clawbackStartTs: BN
   /** Clawback receiver */
-  clawbackReceiver: PublicKey
+  clawbackReceiver: Address
   /** Admin wallet */
-  admin: PublicKey
+  admin: Address
   /** Whether or not the distributor has been clawed back */
   clawedBack: boolean
   /** this merkle tree is enable from this slot */
@@ -102,11 +113,11 @@ export class MerkleDistributor {
   /** The 256-bit merkle root. */
   readonly root: Array<number>
   /** [Mint] of the token to be distributed. */
-  readonly mint: PublicKey
+  readonly mint: Address
   /** base key of distributor. */
-  readonly base: PublicKey
+  readonly base: Address
   /** Token Address of the vault */
-  readonly tokenVault: PublicKey
+  readonly tokenVault: Address
   /** Maximum number of tokens that can ever be claimed from this [MerkleDistributor]. */
   readonly maxTotalClaim: BN
   /** Maximum number of nodes in [MerkleDistributor]. */
@@ -122,9 +133,9 @@ export class MerkleDistributor {
   /** Clawback start (Unix Timestamp) */
   readonly clawbackStartTs: BN
   /** Clawback receiver */
-  readonly clawbackReceiver: PublicKey
+  readonly clawbackReceiver: Address
   /** Admin wallet */
-  readonly admin: PublicKey
+  readonly admin: Address
   /** Whether or not the distributor has been clawed back */
   readonly clawedBack: boolean
   /** this merkle tree is enable from this slot */
@@ -142,13 +153,13 @@ export class MerkleDistributor {
     77, 119, 139, 70, 84, 247, 12, 26,
   ])
 
-  static readonly layout = borsh.struct([
+  static readonly layout = borsh.struct<MerkleDistributor>([
     borsh.u8("bump"),
     borsh.u64("version"),
     borsh.array(borsh.u8(), 32, "root"),
-    borsh.publicKey("mint"),
-    borsh.publicKey("base"),
-    borsh.publicKey("tokenVault"),
+    borshAddress("mint"),
+    borshAddress("base"),
+    borshAddress("tokenVault"),
     borsh.u64("maxTotalClaim"),
     borsh.u64("maxNumNodes"),
     borsh.u64("totalAmountClaimed"),
@@ -156,8 +167,8 @@ export class MerkleDistributor {
     borsh.i64("startTs"),
     borsh.i64("endTs"),
     borsh.i64("clawbackStartTs"),
-    borsh.publicKey("clawbackReceiver"),
-    borsh.publicKey("admin"),
+    borshAddress("clawbackReceiver"),
+    borshAddress("admin"),
     borsh.bool("clawedBack"),
     borsh.u64("enableSlot"),
     borsh.bool("closable"),
@@ -191,38 +202,42 @@ export class MerkleDistributor {
   }
 
   static async fetch(
-    c: Connection,
-    address: PublicKey,
-    programId: PublicKey = PROGRAM_ID
+    rpc: Rpc<GetAccountInfoApi>,
+    address: Address,
+    programId: Address = PROGRAM_ID
   ): Promise<MerkleDistributor | null> {
-    const info = await c.getAccountInfo(address)
+    const info = await fetchEncodedAccount(rpc, address)
 
-    if (info === null) {
+    if (!info.exists) {
       return null
     }
-    if (!info.owner.equals(programId)) {
-      throw new Error("account doesn't belong to this program")
+    if (info.programAddress !== programId) {
+      throw new Error(
+        `MerkleDistributorFields account ${address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+      )
     }
 
-    return this.decode(info.data)
+    return this.decode(Buffer.from(info.data))
   }
 
   static async fetchMultiple(
-    c: Connection,
-    addresses: PublicKey[],
-    programId: PublicKey = PROGRAM_ID
+    rpc: Rpc<GetMultipleAccountsApi>,
+    addresses: Address[],
+    programId: Address = PROGRAM_ID
   ): Promise<Array<MerkleDistributor | null>> {
-    const infos = await c.getMultipleAccountsInfo(addresses)
+    const infos = await fetchEncodedAccounts(rpc, addresses)
 
     return infos.map((info) => {
-      if (info === null) {
+      if (!info.exists) {
         return null
       }
-      if (!info.owner.equals(programId)) {
-        throw new Error("account doesn't belong to this program")
+      if (info.programAddress !== programId) {
+        throw new Error(
+          `MerkleDistributorFields account ${info.address} belongs to wrong program ${info.programAddress}, expected ${programId}`
+        )
       }
 
-      return this.decode(info.data)
+      return this.decode(Buffer.from(info.data))
     })
   }
 
@@ -263,9 +278,9 @@ export class MerkleDistributor {
       bump: this.bump,
       version: this.version.toString(),
       root: this.root,
-      mint: this.mint.toString(),
-      base: this.base.toString(),
-      tokenVault: this.tokenVault.toString(),
+      mint: this.mint,
+      base: this.base,
+      tokenVault: this.tokenVault,
       maxTotalClaim: this.maxTotalClaim.toString(),
       maxNumNodes: this.maxNumNodes.toString(),
       totalAmountClaimed: this.totalAmountClaimed.toString(),
@@ -273,8 +288,8 @@ export class MerkleDistributor {
       startTs: this.startTs.toString(),
       endTs: this.endTs.toString(),
       clawbackStartTs: this.clawbackStartTs.toString(),
-      clawbackReceiver: this.clawbackReceiver.toString(),
-      admin: this.admin.toString(),
+      clawbackReceiver: this.clawbackReceiver,
+      admin: this.admin,
       clawedBack: this.clawedBack,
       enableSlot: this.enableSlot.toString(),
       closable: this.closable,
@@ -289,9 +304,9 @@ export class MerkleDistributor {
       bump: obj.bump,
       version: new BN(obj.version),
       root: obj.root,
-      mint: new PublicKey(obj.mint),
-      base: new PublicKey(obj.base),
-      tokenVault: new PublicKey(obj.tokenVault),
+      mint: address(obj.mint),
+      base: address(obj.base),
+      tokenVault: address(obj.tokenVault),
       maxTotalClaim: new BN(obj.maxTotalClaim),
       maxNumNodes: new BN(obj.maxNumNodes),
       totalAmountClaimed: new BN(obj.totalAmountClaimed),
@@ -299,8 +314,8 @@ export class MerkleDistributor {
       startTs: new BN(obj.startTs),
       endTs: new BN(obj.endTs),
       clawbackStartTs: new BN(obj.clawbackStartTs),
-      clawbackReceiver: new PublicKey(obj.clawbackReceiver),
-      admin: new PublicKey(obj.admin),
+      clawbackReceiver: address(obj.clawbackReceiver),
+      admin: address(obj.admin),
       clawedBack: obj.clawedBack,
       enableSlot: new BN(obj.enableSlot),
       closable: obj.closable,

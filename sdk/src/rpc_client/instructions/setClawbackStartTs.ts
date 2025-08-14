@@ -1,7 +1,20 @@
-import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  Address,
+  isSome,
+  AccountMeta,
+  AccountSignerMeta,
+  Instruction,
+  Option,
+  TransactionSigner,
+} from "@solana/kit"
+/* eslint-enable @typescript-eslint/no-unused-vars */
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
+
+export const DISCRIMINATOR = Buffer.from([83, 102, 71, 44, 243, 244, 186, 8])
 
 export interface SetClawbackStartTsArgs {
   clawbackStartTs: BN
@@ -9,23 +22,26 @@ export interface SetClawbackStartTsArgs {
 
 export interface SetClawbackStartTsAccounts {
   /** [MerkleDistributor]. */
-  distributor: PublicKey
+  distributor: Address
   /** Payer to create the distributor. */
-  admin: PublicKey
+  admin: TransactionSigner
 }
 
-export const layout = borsh.struct([borsh.i64("clawbackStartTs")])
+export const layout = borsh.struct<SetClawbackStartTsArgs>([
+  borsh.i64("clawbackStartTs"),
+])
 
 export function setClawbackStartTs(
   args: SetClawbackStartTsArgs,
   accounts: SetClawbackStartTsAccounts,
-  programId: PublicKey = PROGRAM_ID
+  remainingAccounts: Array<AccountMeta | AccountSignerMeta> = [],
+  programAddress: Address = PROGRAM_ID
 ) {
-  const keys: Array<AccountMeta> = [
-    { pubkey: accounts.distributor, isSigner: false, isWritable: true },
-    { pubkey: accounts.admin, isSigner: true, isWritable: true },
+  const keys: Array<AccountMeta | AccountSignerMeta> = [
+    { address: accounts.distributor, role: 1 },
+    { address: accounts.admin.address, role: 3, signer: accounts.admin },
+    ...remainingAccounts,
   ]
-  const identifier = Buffer.from([83, 102, 71, 44, 243, 244, 186, 8])
   const buffer = Buffer.alloc(1000)
   const len = layout.encode(
     {
@@ -33,7 +49,7 @@ export function setClawbackStartTs(
     },
     buffer
   )
-  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix = new TransactionInstruction({ keys, programId, data })
+  const data = Buffer.concat([DISCRIMINATOR, buffer]).slice(0, 8 + len)
+  const ix: Instruction = { accounts: keys, programAddress, data }
   return ix
 }
