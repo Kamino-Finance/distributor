@@ -41,12 +41,13 @@ import type { SolanaRpcSubscriptionsApi } from "@solana/rpc-subscriptions-api";
 export const DISTRIBUTOR_IDL = DISTRIBUTORIDL as anchor.Idl;
 export const WAD = new Decimal("1".concat(Array(18 + 1).join("0")));
 
-// TODO can use createSignersFromKeypair method from @solana/kit
-export async function parseKeypairFile(file: string): Promise<CryptoKeyPair> {
+export async function parseKeypairFile(file: string): Promise<KeyPairSigner> {
   const keypairFile = require("fs").readFileSync(file);
   const keypairBytes = new Uint8Array(JSON.parse(keypairFile.toString()));
 
-  return createKeyPairFromBytes(keypairBytes);
+  const keypair = await createKeyPairFromBytes(keypairBytes);
+
+  return createSignerFromKeyPair(keypair);
 }
 
 export function collToLamportsDecimal(
@@ -182,7 +183,7 @@ export async function initializeClient(): Promise<{
 
   const payer = await parseKeypairFile(admin);
 
-  const initialOwner = await createSignerFromKeyPair(payer);
+  const initialOwner = payer;
   const connection = createSolanaRpc(rpc);
   const wsConnection = createSolanaRpcSubscriptions(rpcSubscriptions);
 

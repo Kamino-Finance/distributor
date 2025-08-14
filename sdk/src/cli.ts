@@ -117,7 +117,7 @@ async function main() {
       const distributorClient = new Distributor(rpc);
       let payer = initialOwner;
       if (keypair) {
-        payer = await createSignerFromKeyPair(await parseKeypairFile(keypair));
+        payer = await parseKeypairFile(keypair);
       }
 
       const apiResponse = await fetchUserDataFromApi(payer.address, apiUrl);
