@@ -159,15 +159,11 @@ export async function initializeClient(): Promise<{
   let resolvedRpcSubscriptions: string;
   let resolvedAdmin: string;
 
-  console.log(admin, rpc);
-
   if (rpc) {
     resolvedRpc = rpc;
   } else {
     throw "Must specify cluster";
   }
-
-  console.log(rpcSubscriptions);
 
   if (rpcSubscriptions) {
     resolvedRpcSubscriptions = rpcSubscriptions;
@@ -203,12 +199,8 @@ export async function printSimulateTx(
   rpc: Rpc<SolanaRpcApi>,
   tx: Base64EncodedWireTransaction,
 ) {
-  console.log(
-    "Tx in B64",
-    `https://explorer.solana.com/tx/inspector?message=${encodeURIComponent(
-      tx.toString(),
-    )}`,
-  );
+  console.log("Inspect Tx:", `https://explorer.solana.com/tx/inspector`);
+  console.log("Tx in B64", tx);
 
   let res = await rpc
     .simulateTransaction(tx, {

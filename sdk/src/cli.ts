@@ -23,7 +23,6 @@ import {
   Address,
   address,
   appendTransactionMessageInstructions,
-  createSignerFromKeyPair,
   createTransactionMessage,
   getBase64EncodedWireTransaction,
   getSignatureFromTransaction,
