@@ -1,11 +1,6 @@
 import { BN } from "@coral-xyz/anchor";
 import * as Instructions from "./rpc_client/instructions";
-import {
-  Connection,
-  PublicKey,
-  SystemProgram,
-  TransactionInstruction,
-} from "@solana/web3.js";
+import { SystemProgram } from "@solana/web3.js";
 import {
   accountExist,
   createAtaInstruction,
@@ -16,7 +11,6 @@ import Decimal from "decimal.js";
 import { PROGRAM_ID } from "./rpc_client/programId";
 import { ClaimStatus, MerkleDistributor } from "./rpc_client/accounts";
 import { NewClaimAccounts } from "./rpc_client/instructions/newClaim";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
   Address,
   Instruction,

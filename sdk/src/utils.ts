@@ -1,24 +1,16 @@
 import * as anchor from "@coral-xyz/anchor";
 import { ComputeBudgetProgram, PublicKey } from "@solana/web3.js";
 import { Decimal } from "decimal.js";
-import {
-  TOKEN_PROGRAM_ID,
-  getAssociatedTokenAddress as getAta,
-  createAssociatedTokenAccountInstruction,
-} from "@solana/spl-token";
 import DISTRIBUTORIDL from "./rpc_client/merkle_distributor.json";
 import * as fs from "fs";
 import {
   address,
   Address,
   Base64EncodedWireTransaction,
-  createDefaultRpcTransport,
   createKeyPairFromBytes,
   createSignerFromKeyPair,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
-  GetAccountInfoApi,
-  getAddressDecoder,
   getAddressEncoder,
   getProgramDerivedAddress,
   Instruction,
