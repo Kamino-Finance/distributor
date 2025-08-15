@@ -165,10 +165,7 @@ async function main() {
         const sig = getSignatureFromTransaction(signedTransaction);
         console.log("Signature", sig);
       } else {
-        await printSimulateTx(
-          rpc,
-          getBase64EncodedWireTransaction(signedTransaction),
-        );
+        await printSimulateTx(rpc, signedTransaction);
       }
     });
 

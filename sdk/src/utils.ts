@@ -6,18 +6,19 @@ import * as fs from "fs";
 import {
   address,
   Address,
-  Base64EncodedWireTransaction,
   createKeyPairFromBytes,
   createSignerFromKeyPair,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
   getAddressEncoder,
+  getBase64EncodedWireTransaction,
   getProgramDerivedAddress,
   Instruction,
   KeyPairSigner,
   Rpc,
   RpcSubscriptions,
   SolanaRpcApi,
+  Transaction,
 } from "@solana/kit";
 import {
   findAssociatedTokenPda,
@@ -187,15 +188,16 @@ export async function initializeClient(): Promise<{
   };
 }
 
-export async function printSimulateTx(
-  rpc: Rpc<SolanaRpcApi>,
-  tx: Base64EncodedWireTransaction,
-) {
-  console.log("Inspect Tx:", `https://explorer.solana.com/tx/inspector`);
-  console.log("Tx in B64", tx);
+export async function printSimulateTx(rpc: Rpc<SolanaRpcApi>, tx: Transaction) {
+  console.log(
+    "Tx in B64",
+    `https://explorer.solana.com/tx/inspector?message=${encodeURIComponent(
+      Buffer.from(tx.messageBytes).toString("base64"),
+    )}`,
+  );
 
   let res = await rpc
-    .simulateTransaction(tx, {
+    .simulateTransaction(getBase64EncodedWireTransaction(tx), {
       encoding: "base64",
     })
     .send();
