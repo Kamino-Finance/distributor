@@ -1,7 +1,20 @@
-import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  Address,
+  isSome,
+  AccountMeta,
+  AccountSignerMeta,
+  Instruction,
+  Option,
+  TransactionSigner,
+} from "@solana/kit"
+/* eslint-enable @typescript-eslint/no-unused-vars */
 import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { borshAddress } from "../utils" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
+
+export const DISCRIMINATOR = Buffer.from([32, 139, 112, 171, 0, 2, 225, 155])
 
 export interface NewDistributorArgs {
   version: BN
@@ -17,32 +30,32 @@ export interface NewDistributorArgs {
 
 export interface NewDistributorAccounts {
   /** [MerkleDistributor]. */
-  distributor: PublicKey
+  distributor: Address
   /** Base key of the distributor. */
-  base: PublicKey
+  base: TransactionSigner
   /** Clawback receiver token account */
-  clawbackReceiver: PublicKey
+  clawbackReceiver: Address
   /** The mint to distribute. */
-  mint: PublicKey
+  mint: Address
   /**
    * Token vault
    * Should create previously
    */
-  tokenVault: PublicKey
+  tokenVault: Address
   /**
    * Admin wallet, responsible for creating the distributor and paying for the transaction.
    * Also has the authority to set the clawback receiver and change itself.
    */
-  admin: PublicKey
+  admin: TransactionSigner
   /** The [System] program. */
-  systemProgram: PublicKey
+  systemProgram: Address
   /** The [Associated Token] program. */
-  associatedTokenProgram: PublicKey
+  associatedTokenProgram: Address
   /** The [Token] program. */
-  tokenProgram: PublicKey
+  tokenProgram: Address
 }
 
-export const layout = borsh.struct([
+export const layout = borsh.struct<NewDistributorArgs>([
   borsh.u64("version"),
   borsh.array(borsh.u8(), 32, "root"),
   borsh.u64("maxTotalClaim"),
@@ -77,24 +90,21 @@ export const layout = borsh.struct([
 export function newDistributor(
   args: NewDistributorArgs,
   accounts: NewDistributorAccounts,
-  programId: PublicKey = PROGRAM_ID
+  remainingAccounts: Array<AccountMeta | AccountSignerMeta> = [],
+  programAddress: Address = PROGRAM_ID
 ) {
-  const keys: Array<AccountMeta> = [
-    { pubkey: accounts.distributor, isSigner: false, isWritable: true },
-    { pubkey: accounts.base, isSigner: true, isWritable: false },
-    { pubkey: accounts.clawbackReceiver, isSigner: false, isWritable: true },
-    { pubkey: accounts.mint, isSigner: false, isWritable: false },
-    { pubkey: accounts.tokenVault, isSigner: false, isWritable: false },
-    { pubkey: accounts.admin, isSigner: true, isWritable: true },
-    { pubkey: accounts.systemProgram, isSigner: false, isWritable: false },
-    {
-      pubkey: accounts.associatedTokenProgram,
-      isSigner: false,
-      isWritable: false,
-    },
-    { pubkey: accounts.tokenProgram, isSigner: false, isWritable: false },
+  const keys: Array<AccountMeta | AccountSignerMeta> = [
+    { address: accounts.distributor, role: 1 },
+    { address: accounts.base.address, role: 2, signer: accounts.base },
+    { address: accounts.clawbackReceiver, role: 1 },
+    { address: accounts.mint, role: 0 },
+    { address: accounts.tokenVault, role: 0 },
+    { address: accounts.admin.address, role: 3, signer: accounts.admin },
+    { address: accounts.systemProgram, role: 0 },
+    { address: accounts.associatedTokenProgram, role: 0 },
+    { address: accounts.tokenProgram, role: 0 },
+    ...remainingAccounts,
   ]
-  const identifier = Buffer.from([32, 139, 112, 171, 0, 2, 225, 155])
   const buffer = Buffer.alloc(1000)
   const len = layout.encode(
     {
@@ -110,7 +120,7 @@ export function newDistributor(
     },
     buffer
   )
-  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix = new TransactionInstruction({ keys, programId, data })
+  const data = Buffer.concat([DISCRIMINATOR, buffer]).slice(0, 8 + len)
+  const ix: Instruction = { accounts: keys, programAddress, data }
   return ix
 }

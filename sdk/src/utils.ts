@@ -1,28 +1,46 @@
 import * as anchor from "@coral-xyz/anchor";
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  TransactionInstruction,
-  Transaction,
-  ComputeBudgetProgram,
-} from "@solana/web3.js";
+import { ComputeBudgetProgram, PublicKey } from "@solana/web3.js";
 import { Decimal } from "decimal.js";
-import {
-  TOKEN_PROGRAM_ID,
-  getAssociatedTokenAddress as getAta,
-  createAssociatedTokenAccountInstruction
-} from "@solana/spl-token";
 import DISTRIBUTORIDL from "./rpc_client/merkle_distributor.json";
 import * as fs from "fs";
+import {
+  address,
+  Address,
+  createKeyPairFromBytes,
+  createSignerFromKeyPair,
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+  getAddressEncoder,
+  getBase64EncodedWireTransaction,
+  getProgramDerivedAddress,
+  Instruction,
+  KeyPairSigner,
+  Rpc,
+  RpcSubscriptions,
+  SolanaRpcApi,
+  Transaction,
+} from "@solana/kit";
+import {
+  findAssociatedTokenPda,
+  getCreateAssociatedTokenInstructionAsync,
+  TOKEN_PROGRAM_ADDRESS,
+} from "@solana-program/token";
+import {
+  fromLegacyPublicKey,
+  fromLegacyTransactionInstruction,
+} from "@solana/compat";
+import type { SolanaRpcSubscriptionsApi } from "@solana/rpc-subscriptions-api";
 
 export const DISTRIBUTOR_IDL = DISTRIBUTORIDL as anchor.Idl;
 export const WAD = new Decimal("1".concat(Array(18 + 1).join("0")));
 
-export function parseKeypairFile(file: string): Keypair {
-  return Keypair.fromSecretKey(
-    Buffer.from(JSON.parse(require("fs").readFileSync(file))),
-  );
+export async function parseKeypairFile(file: string): Promise<KeyPairSigner> {
+  const keypairFile = require("fs").readFileSync(file);
+  const keypairBytes = new Uint8Array(JSON.parse(keypairFile.toString()));
+
+  const keypair = await createKeyPairFromBytes(keypairBytes);
+
+  return createSignerFromKeyPair(keypair);
 }
 
 export function collToLamportsDecimal(
@@ -42,103 +60,108 @@ export function lamportsToCollDecimal(
 }
 
 export async function getAssociatedTokenAddress(
-  owner: PublicKey,
-  tokenMintAddress: PublicKey,
-): Promise<PublicKey> {
-  return await getAta(
-    tokenMintAddress, // mint
-    owner, // owner
-    true,
-    TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
-  );
+  ownerAddress: Address,
+  tokenMintAddress: Address,
+): Promise<Address> {
+  const [associatedTokenAddress] = await findAssociatedTokenPda({
+    mint: tokenMintAddress,
+    owner: ownerAddress,
+    tokenProgram: TOKEN_PROGRAM_ADDRESS,
+  });
+  return associatedTokenAddress;
 }
 
 export async function createAtaInstruction(
-  owner: PublicKey,
-  tokenMintAddress: PublicKey,
-  ata: PublicKey,
-): Promise<TransactionInstruction> {
-  return createAssociatedTokenAccountInstruction(
-    owner, // fee payer
-    ata, // ata
-    owner, // owner of token account
-    tokenMintAddress, // mint
-    TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
-  );
+  owner: KeyPairSigner,
+  tokenMintAddress: Address,
+): Promise<Instruction> {
+  return getCreateAssociatedTokenInstructionAsync({
+    payer: owner,
+    mint: tokenMintAddress,
+    owner: owner.address,
+  });
 }
 
 export async function getTokenAccountBalance(
-  provider: anchor.AnchorProvider,
-  tokenAccount: PublicKey,
+  rpc: Rpc<SolanaRpcApi>,
+  tokenAccount: Address,
 ): Promise<Decimal> {
-  const tokenAccountBalance =
-    await provider.connection.getTokenAccountBalance(tokenAccount);
+  const tokenAccountBalance = await rpc
+    .getTokenAccountBalance(tokenAccount)
+    .send();
   return new Decimal(tokenAccountBalance.value.amount).div(
     Decimal.pow(10, tokenAccountBalance.value.decimals),
   );
 }
 
 export async function getSolBalanceInLamports(
-  provider: anchor.AnchorProvider,
-  account: PublicKey,
-): Promise<number> {
-  let balance: number | undefined = undefined;
+  rpc: Rpc<SolanaRpcApi>,
+  account: Address,
+): Promise<bigint> {
+  let balance: bigint | undefined = undefined;
   while (balance === undefined) {
-    balance = (await provider.connection.getAccountInfo(account))?.lamports;
+    balance = (await rpc.getAccountInfo(account).send())?.value?.lamports;
   }
   return balance;
 }
 
 export async function getSolBalance(
-  provider: anchor.AnchorProvider,
-  account: PublicKey,
+  rpc: Rpc<SolanaRpcApi>,
+  account: Address,
 ): Promise<Decimal> {
-  const balance = new Decimal(await getSolBalanceInLamports(provider, account));
+  const balance = new Decimal(
+    (await getSolBalanceInLamports(rpc, account)).toString(),
+  );
   return lamportsToCollDecimal(balance, 9);
 }
 
 export type Cluster = "localnet" | "devnet" | "mainnet";
 
-export async function accountExist(
-  connection: anchor.web3.Connection,
-  account: anchor.web3.PublicKey,
-) {
-  const info = await connection.getAccountInfo(account);
-  if (info === null || info.data.length === 0) {
-    return false;
-  }
-  return true;
+export async function accountExist(rpc: Rpc<SolanaRpcApi>, account: Address) {
+  const info = await rpc.getAccountInfo(account).send();
+  return !(info === null || info.value?.data.length === 0);
 }
 
-export function getClaimStatusPDA(
-  claimant: PublicKey,
-  distributor: PublicKey,
-  programId: PublicKey,
-): PublicKey {
-  const [userState, _userStateBump] =
-    anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("ClaimStatus"), claimant.toBuffer(), distributor.toBuffer()],
-      programId,
-    );
+export async function getClaimStatusPDA(
+  claimant: Address,
+  distributor: Address,
+  programId: Address,
+): Promise<Address> {
+  const addressEncoder = getAddressEncoder();
+  const [userState, _userStateBump] = await getProgramDerivedAddress({
+    programAddress: programId,
+    seeds: [
+      "ClaimStatus",
+      addressEncoder.encode(claimant),
+      addressEncoder.encode(distributor),
+    ],
+  });
 
   return userState;
 }
 
-export function initializeClient(): {
-  initialOwner: Keypair;
-  provider: anchor.AnchorProvider;
-} {
+export async function initializeClient(): Promise<{
+  initialOwner: KeyPairSigner;
+  rpc: Rpc<SolanaRpcApi>;
+  rpcWs: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
+}> {
   const admin = process.env.ADMIN;
   const rpc = process.env.RPC;
+  const rpcSubscriptions = process.env.RPC_WS;
   let resolvedRpc: string;
+  let resolvedRpcSubscriptions: string;
   let resolvedAdmin: string;
-
-  console.log(admin, rpc);
 
   if (rpc) {
     resolvedRpc = rpc;
   } else {
     throw "Must specify cluster";
+  }
+
+  if (rpcSubscriptions) {
+    resolvedRpcSubscriptions = rpcSubscriptions;
+  } else {
+    throw "Must specify websocket cluster";
   }
 
   if (admin) {
@@ -147,39 +170,37 @@ export function initializeClient(): {
     throw "Must specify admin";
   }
 
-  const payer = parseKeypairFile(admin);
-  const connection = new Connection(resolvedRpc, {
-    commitment: "confirmed",
-  });
-  // @ts-ignore
-  const wallet = new anchor.Wallet(payer);
-  const provider = new anchor.AnchorProvider(
-    connection,
-    wallet,
-    anchor.AnchorProvider.defaultOptions(),
-  );
+  const payer = await parseKeypairFile(admin);
+
   const initialOwner = payer;
-  anchor.setProvider(provider);
+  const connection = createSolanaRpc(rpc);
+  const wsConnection = createSolanaRpcSubscriptions(rpcSubscriptions);
 
   console.log("\nSettings ⚙️");
   console.log("Admin:", resolvedAdmin);
   console.log("Cluster:", resolvedRpc);
+  console.log("Cluster WS:", resolvedRpcSubscriptions);
 
   return {
     initialOwner,
-    provider,
+    rpc: connection,
+    rpcWs: wsConnection,
   };
 }
 
-export async function printSimulateTx(conn: Connection, tx: Transaction) {
+export async function printSimulateTx(rpc: Rpc<SolanaRpcApi>, tx: Transaction) {
   console.log(
     "Tx in B64",
     `https://explorer.solana.com/tx/inspector?message=${encodeURIComponent(
-      tx.serializeMessage().toString("base64"),
+      Buffer.from(tx.messageBytes).toString("base64"),
     )}`,
   );
 
-  let res = await conn.simulateTransaction(tx);
+  let res = await rpc
+    .simulateTransaction(getBase64EncodedWireTransaction(tx), {
+      encoding: "base64",
+    })
+    .send();
   console.log("Simulate Response", res);
   console.log("");
 }
@@ -187,15 +208,23 @@ export async function printSimulateTx(conn: Connection, tx: Transaction) {
 export function createAddExtraComputeUnitFeeTransaction(
   units: number,
   microLamports: number,
-): TransactionInstruction[] {
-  const ixns: TransactionInstruction[] = [];
-  ixns.push(ComputeBudgetProgram.setComputeUnitLimit({ units }));
-  ixns.push(ComputeBudgetProgram.setComputeUnitPrice({ microLamports }));
+): Instruction[] {
+  const ixns: Instruction[] = [];
+  ixns.push(
+    fromLegacyTransactionInstruction(
+      ComputeBudgetProgram.setComputeUnitLimit({ units }),
+    ),
+  );
+  ixns.push(
+    fromLegacyTransactionInstruction(
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports }),
+    ),
+  );
   return ixns;
 }
 
 export async function fetchUserDataFromApi(
-  user: PublicKey,
+  user: Address,
   apiUrl: string,
 ): Promise<ClaimApiResponse> {
   const headers: Headers = new Headers();
@@ -245,7 +274,7 @@ export function readCsv(path: string, decimalsInCsv: string) {
     const values = line.split(",");
     if (values[0] && values[1]) {
       userClaims.push({
-        address: new PublicKey(values[0]),
+        address: address(values[0]),
         amount: new Decimal(Number(values[1]) * 10 ** Number(decimalsInCsv))
           .floor()
           .toNumber(),
@@ -257,7 +286,7 @@ export function readCsv(path: string, decimalsInCsv: string) {
 }
 
 export type UserClaim = {
-  address: PublicKey;
+  address: Address;
   amount: number;
 };
 
@@ -275,7 +304,9 @@ export function readMerkleTreesDirectory(
       );
 
       farmConfigFromFile.tree_nodes.forEach((claimant) => {
-        const claimantAddress = new PublicKey(claimant.claimant);
+        const claimantAddress = fromLegacyPublicKey(
+          new PublicKey(claimant.claimant),
+        );
         const amount = claimant.amount;
         const proof = claimant.proof;
 

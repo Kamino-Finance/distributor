@@ -1,11 +1,6 @@
 import { BN } from "@coral-xyz/anchor";
 import * as Instructions from "./rpc_client/instructions";
-import {
-  Connection,
-  PublicKey,
-  SystemProgram,
-  TransactionInstruction,
-} from "@solana/web3.js";
+import { SystemProgram } from "@solana/web3.js";
 import {
   accountExist,
   createAtaInstruction,
@@ -16,13 +11,21 @@ import Decimal from "decimal.js";
 import { PROGRAM_ID } from "./rpc_client/programId";
 import { ClaimStatus, MerkleDistributor } from "./rpc_client/accounts";
 import { NewClaimAccounts } from "./rpc_client/instructions/newClaim";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  Address,
+  Instruction,
+  KeyPairSigner,
+  Rpc,
+  SolanaRpcApi,
+} from "@solana/kit";
+import { TOKEN_PROGRAM_ADDRESS } from "@solana-program/token";
+import { fromLegacyPublicKey } from "@solana/compat";
 
 export class Distributor {
-  private readonly _connection: Connection;
-  private readonly _distributorProgramId: PublicKey;
+  private readonly _connection: Rpc<SolanaRpcApi>;
+  private readonly _distributorProgramId: Address;
 
-  constructor(connection: Connection) {
+  constructor(connection: Rpc<SolanaRpcApi>) {
     this._connection = connection;
     this._distributorProgramId = PROGRAM_ID;
   }
@@ -36,10 +39,10 @@ export class Distributor {
   }
 
   async userClaimed(
-    merkleDistributorAddress: PublicKey,
-    user: PublicKey,
+    merkleDistributorAddress: Address,
+    user: Address,
   ): Promise<boolean> {
-    const claimStatusAddress = getClaimStatusPDA(
+    const claimStatusAddress = await getClaimStatusPDA(
       user,
       merkleDistributorAddress,
       this.getProgramID(),
@@ -56,7 +59,7 @@ export class Distributor {
     }
   }
 
-  async isClaimable(merkleDistributorAddress: PublicKey): Promise<boolean> {
+  async isClaimable(merkleDistributorAddress: Address): Promise<boolean> {
     const merkleDistributorState = await MerkleDistributor.fetch(
       this._connection,
       merkleDistributorAddress,
@@ -66,7 +69,7 @@ export class Distributor {
       throw new Error("Merkle Distributor not found");
     }
 
-    const currentSlot = await this._connection.getSlot();
+    const currentSlot = await this._connection.getSlot().send();
 
     if (
       new Decimal(merkleDistributorState.enableSlot.toString()).toNumber() >=
@@ -78,7 +81,7 @@ export class Distributor {
     }
   }
 
-  async getEnabledSlot(merkleDistributorAddress: PublicKey): Promise<number> {
+  async getEnabledSlot(merkleDistributorAddress: Address): Promise<number> {
     const merkleDistributorState = await MerkleDistributor.fetch(
       this._connection,
       merkleDistributorAddress,
@@ -92,13 +95,13 @@ export class Distributor {
   }
 
   async getNewClaimIx(
-    merkleDistributorAddress: PublicKey,
-    user: PublicKey,
+    merkleDistributorAddress: Address,
+    user: KeyPairSigner,
     amountLamports: number,
     proof: number[][],
-  ): Promise<TransactionInstruction[]> {
-    const claimStatusAddress = getClaimStatusPDA(
-      user,
+  ): Promise<Instruction[]> {
+    const claimStatusAddress = await getClaimStatusPDA(
+      user.address,
       merkleDistributorAddress,
       this.getProgramID(),
     );
@@ -107,14 +110,12 @@ export class Distributor {
       merkleDistributorAddress,
     );
     const userAta = await getAssociatedTokenAddress(
-      user,
+      user.address,
       merkleDistributor?.mint!,
     );
-    const ixs: TransactionInstruction[] = [];
+    const ixs: Instruction[] = [];
     if (!(await accountExist(this._connection, userAta))) {
-      ixs.push(
-        await createAtaInstruction(user, merkleDistributor?.mint!, userAta),
-      );
+      ixs.push(await createAtaInstruction(user, merkleDistributor?.mint!));
     }
 
     const accounts: NewClaimAccounts = {
@@ -123,8 +124,8 @@ export class Distributor {
       from: merkleDistributor?.tokenVault!,
       to: userAta,
       claimant: user,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
+      tokenProgram: TOKEN_PROGRAM_ADDRESS,
+      systemProgram: fromLegacyPublicKey(SystemProgram.programId),
     };
 
     const args: Instructions.NewClaimArgs = {
@@ -139,7 +140,7 @@ export class Distributor {
   }
 
   async getMultipleDistributorStats(
-    distributors: PublicKey[],
+    distributors: Address[],
   ): Promise<DistributionStats> {
     const distributorsStats: DistributorStats[] = [];
     let distributionTotalClaimed: Decimal = new Decimal(0);
@@ -183,7 +184,7 @@ export class Distributor {
   }
 
   async getSingleDistributorStats(
-    distributorAddress: PublicKey,
+    distributorAddress: Address,
   ): Promise<DistributorStats> {
     const merkleDistributor = await MerkleDistributor.fetch(
       this._connection,
@@ -198,7 +199,7 @@ export class Distributor {
 
   getDistributorStats(
     distributor: MerkleDistributor,
-    distributorAddress: PublicKey,
+    distributorAddress: Address,
   ): DistributorStats {
     const totalClaimed = new Decimal(distributor.totalAmountClaimed.toString());
     const maxTotalClaim = new Decimal(distributor.maxTotalClaim.toString()).sub(
@@ -223,7 +224,7 @@ export class Distributor {
 }
 
 export type DistributorStats = {
-  address: PublicKey;
+  address: Address;
   totalClaimed: Decimal;
   maxTotalClaim: Decimal;
   totalUsers: number;

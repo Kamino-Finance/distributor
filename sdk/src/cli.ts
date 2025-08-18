@@ -1,12 +1,6 @@
 #!/usr/bin/env npx ts-node
 import { Command } from "commander";
 import {
-  PublicKey,
-  sendAndConfirmTransaction,
-  Transaction,
-} from "@solana/web3.js";
-import dotenv from "dotenv";
-import {
   ApiFormatData,
   ClaimApiResponse,
   createAddExtraComputeUnitFeeTransaction,
@@ -24,8 +18,23 @@ import {
 import { Distributor } from "./Distributor";
 import * as fs from "fs";
 import Decimal from "decimal.js";
-import { AnchorProvider } from "@coral-xyz/anchor";
-import { lamportsToCollDecimal } from './utils';
+import { lamportsToCollDecimal } from "./utils";
+import {
+  Address,
+  address,
+  appendTransactionMessageInstructions,
+  createTransactionMessage,
+  getBase64EncodedWireTransaction,
+  getSignatureFromTransaction,
+  Instruction,
+  pipe,
+  Rpc,
+  sendAndConfirmTransactionFactory,
+  setTransactionMessageFeePayerSigner,
+  setTransactionMessageLifetimeUsingBlockhash,
+  signTransactionMessageWithSigners,
+  SolanaRpcApi,
+} from "@solana/kit";
 
 const microLamport = 5 * 10 ** 6; // 1 lamport
 const computeUnits = 1_000_000;
@@ -44,11 +53,11 @@ async function main() {
     .command("get-distributor-stats")
     .requiredOption("--distributor-address, <string>", "Distributor address")
     .action(async ({ distributorAddress }) => {
-      const { provider } = initializeClient();
-      const distributorClient = new Distributor(provider.connection);
+      const { rpc } = await initializeClient();
+      const distributorClient = new Distributor(rpc);
       const distributorStats =
         await distributorClient.getSingleDistributorStats(
-          new PublicKey(distributorAddress),
+          address(distributorAddress),
         );
 
       console.log(JSON.parse(JSON.stringify(distributorStats)));
@@ -58,27 +67,30 @@ async function main() {
     .command("get-all-distributors-stats-from-distributor-file")
     .requiredOption("--distributors-file, <string>", "Distributor file")
     .action(async ({ distributorsFile }) => {
-      const { provider } = initializeClient();
-      const distributorClient = new Distributor(provider.connection);
+      const { rpc } = await initializeClient();
+      const distributorClient = new Distributor(rpc);
 
       const rawData = fs.readFileSync(distributorsFile, "utf8");
       const distributors: string[] = JSON.parse(rawData);
 
       const distributorsStats =
         await distributorClient.getMultipleDistributorStats(
-          distributors.map((distributor) => new PublicKey(distributor)),
+          distributors.map((distributor) => address(distributor)),
         );
 
       console.log(
         JSON.parse(
           JSON.stringify({
-            claimed:
-              distributorsStats.distributionTotalClaimed.div(10**6).toFixed(6),
-            unclaimed:
-              distributorsStats.distributionMaxTotalClaim.div(10**6).toFixed(6),
-            walletsClaimed:
+            claimed: distributorsStats.distributionTotalClaimed
+              .div(10 ** 6)
+              .toFixed(6),
+            unclaimed: distributorsStats.distributionMaxTotalClaim
+              .div(10 ** 6)
+              .toFixed(6),
+            walletsClaimed: distributorsStats.distributionTotalUsersClaimed,
+            walletsUnclaimed:
+              distributorsStats.distributionTotalUsers -
               distributorsStats.distributionTotalUsersClaimed,
-            walletsUnclaimed: distributorsStats.distributionTotalUsers - distributorsStats.distributionTotalUsersClaimed,
           }),
         ),
       );
@@ -100,29 +112,28 @@ async function main() {
       "the amount of priority fees to add - (multiply 1 lamport)",
     )
     .action(async ({ apiUrl, keypair, mode, priorityFeeMultiplier }) => {
-      const { initialOwner, provider } = initializeClient();
-      const distributorClient = new Distributor(provider.connection);
+      const { initialOwner, rpc, rpcWs } = await initializeClient();
+      const distributorClient = new Distributor(rpc);
       let payer = initialOwner;
       if (keypair) {
-        payer = parseKeypairFile(keypair);
+        payer = await parseKeypairFile(keypair);
       }
 
-      const apiResponse = await fetchUserDataFromApi(payer.publicKey, apiUrl);
+      const apiResponse = await fetchUserDataFromApi(payer.address, apiUrl);
 
       const newClaimIxns = await distributorClient.getNewClaimIx(
-        new PublicKey(apiResponse.merkle_tree),
-        payer.publicKey,
+        address(apiResponse.merkle_tree),
+        payer,
         apiResponse.amount,
         apiResponse.proof,
       );
 
-      const { blockhash } = await provider.connection.getLatestBlockhash();
-      let txn = new Transaction();
-      txn.recentBlockhash = blockhash;
-      txn.feePayer = payer.publicKey;
+      const { value: blockhash } = await rpc.getLatestBlockhash().send();
+
+      const ixs: Instruction[] = [];
 
       if (mode === "execute") {
-        txn.add(
+        ixs.push(
           ...createAddExtraComputeUnitFeeTransaction(
             computeUnits,
             microLamportsPrioritizationFee *
@@ -133,19 +144,28 @@ async function main() {
         );
       }
 
-      txn.add(...newClaimIxns);
+      ixs.push(...newClaimIxns);
 
+      const transactionMessage = pipe(
+        createTransactionMessage({ version: 0 }),
+        (tx) => setTransactionMessageFeePayerSigner(payer, tx),
+        (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+        (tx) => appendTransactionMessageInstructions(ixs, tx),
+      );
+
+      const signedTransaction =
+        await signTransactionMessageWithSigners(transactionMessage);
       if (mode === "execute") {
         console.log("Sending.");
-        const sig = await sendAndConfirmTransaction(
-          provider.connection,
-          txn,
-          [payer],
-          { skipPreflight: true, commitment: "confirmed" },
-        );
+
+        await sendAndConfirmTransactionFactory({
+          rpc,
+          rpcSubscriptions: rpcWs,
+        })(signedTransaction, { commitment: "confirmed", skipPreflight: true });
+        const sig = getSignatureFromTransaction(signedTransaction);
         console.log("Signature", sig);
       } else {
-        printSimulateTx(provider.connection, txn);
+        await printSimulateTx(rpc, signedTransaction);
       }
     });
 
@@ -154,11 +174,11 @@ async function main() {
     .requiredOption("--distributor-address, <string>", "Distributor address")
     .requiredOption("--user-address, <string>", "User address")
     .action(async ({ distributorAddress, userAddress }) => {
-      const { provider } = initializeClient();
-      const distributorClient = new Distributor(provider.connection);
+      const { rpc } = await initializeClient();
+      const distributorClient = new Distributor(rpc);
       const claimed = await distributorClient.userClaimed(
-        new PublicKey(distributorAddress),
-        new PublicKey(userAddress),
+        address(distributorAddress),
+        address(userAddress),
       );
 
       console.log(claimed);
@@ -170,17 +190,17 @@ async function main() {
     .option("--user-address, <string>", "User address to cehck against")
     .option("--user-address-file, <string>", "User address to cehck against")
     .action(async ({ apiUrlBase, userAddress, userAddressFile }) => {
-      const { provider } = initializeClient();
+      const { rpc } = await initializeClient();
       if (userAddressFile) {
         const rawData = fs.readFileSync(userAddressFile, "utf8");
         const users: string[] = JSON.parse(rawData);
 
         for (const user of users) {
-          await checkUserClaimStatus(new PublicKey(user), provider, apiUrlBase);
+          await checkUserClaimStatus(address(user), rpc, apiUrlBase);
         }
       } else if (userAddress) {
-        const user = new PublicKey(userAddress);
-        await checkUserClaimStatus(user, provider, apiUrlBase);
+        const user = address(userAddress);
+        await checkUserClaimStatus(user, rpc, apiUrlBase);
       }
     });
 
@@ -291,42 +311,38 @@ async function checkAgainstApi(
 }
 
 async function checkUserClaimStatus(
-  user: PublicKey,
-  provider: AnchorProvider,
+  user: Address,
+  rpc: Rpc<SolanaRpcApi>,
   apiUrlBase: string,
 ) {
   const apiResponse: ClaimApiResponse = await retryAsync(async () =>
     noopProfiledFunctionExecution(fetchUserDataFromApi(user, apiUrlBase)),
   );
 
-  if(apiResponse.merkle_tree === undefined) {
-    console.log(
-      "User " +
-        user.toBase58() +
-        " had no allocation" 
-    );
+  if (apiResponse.merkle_tree === undefined) {
+    console.log("User " + user.toString() + " had no allocation");
     return;
   }
 
-  const merkleDistributor = new PublicKey(apiResponse.merkle_tree);
+  const merkleDistributor = address(apiResponse.merkle_tree);
 
-  const distributorClient = new Distributor(provider.connection);
+  const distributorClient = new Distributor(rpc);
   const claimed = await distributorClient.userClaimed(
-    new PublicKey(merkleDistributor),
-    new PublicKey(user),
+    address(merkleDistributor),
+    address(user),
   );
 
   if (claimed) {
     console.log(
       "User " +
-        user.toBase58() +
+        user.toString() +
         " has already claimed his allocation: " +
-        lamportsToCollDecimal(new Decimal(apiResponse.amount), 6).toString()
+        lamportsToCollDecimal(new Decimal(apiResponse.amount), 6).toString(),
     );
   } else {
     console.log(
       "User " +
-        user.toBase58() +
+        user.toString() +
         " has not claimed his allocation: " +
         lamportsToCollDecimal(new Decimal(apiResponse.amount), 6).toString(),
     );
