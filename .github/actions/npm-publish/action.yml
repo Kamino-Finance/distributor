@@ -102,6 +102,8 @@ runs:
         
         echo "Validated commit and tag"
 
+        is_workspace=false
+
         if jq -e '
           (.workspaces | type == "array") or
           (.workspaces.packages | type == "array")
