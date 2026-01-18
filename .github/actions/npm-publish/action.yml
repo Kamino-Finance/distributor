@@ -1,0 +1,124 @@
+name: NPM Publish
+description: Publish to npm with checks to assert a commit and tag were made
+
+inputs:
+  version:
+    description: "Semver bump keyword"
+    default: patch
+  package:
+    description: "Package name e.g. @kamino-finance/xyz"
+    required: true
+  dir:
+    description: "Package directory"
+    default: "."
+  tag_prefix:
+    description: "Git tag prefix e.g. v -> vX.Y.Z"
+    default: 'v'
+  commit_msg:
+    description: "Git commit message format"
+    default: 'Release v%s'
+
+runs:
+  using: composite
+  steps:
+
+    - name: Get Latest Version
+      id: semver
+      shell: bash
+      run: |
+        # Not using `npm view` as the Trusted Publisher OIDC token does not have read permissions
+        latest_version=$(npm view ${{ inputs.package }} version)
+        new_version=$(npx semver "$latest_version" -i ${{ inputs.version }})
+        echo "Latest version: $latest_version"
+        echo "New version: $new_version"
+        echo "latest_version=$latest_version" >> $GITHUB_OUTPUT
+        echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+    - name: Publish to NPM
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # Ensure OIDC - in the previous steps we somehow gain a read token which will fail when we attempt to publish with it
+        # unset to ensure OIDC is always used
+        unset NODE_AUTH_TOKEN
+        unset NPM_TOKEN
+        rm -f "$(npm config get userconfig)" || true
+        rm -f "$NPM_CONFIG_USERCONFIG" || true
+
+        ver="${{ steps.semver.outputs.new_version }}"
+        tag_prefix="${{ inputs.tag_prefix }}"
+        commit_msg="${{ inputs.commit_msg }}"
+        dir="${{ inputs.dir }}"
+
+        # Record current HEAD so we can prove npm version created a commit
+        before_sha="$(git rev-parse HEAD)"
+
+        # Bump version + commit + tag
+        yarn config set version-tag-prefix "${tag_prefix}"
+        yarn config set version-git-message "${commit_msg}"
+        yarn version --new-version "${ver}" --cwd "${dir}"
+
+        after_sha="$(git rev-parse HEAD)"
+
+        echo "Validating commit and tag"
+
+        if [ "$before_sha" = "$after_sha" ]; then
+          echo "ERROR: npm version did not create a new commit (HEAD unchanged)."
+          echo
+          echo "=== git status ==="
+          git status
+          echo
+          echo "=== git status --porcelain ==="
+          git status --porcelain
+          echo
+          echo "=== git diff (working tree) ==="
+          git diff || true
+          echo
+          echo "=== git diff --stat (working tree) ==="
+          git diff --stat || true
+          echo
+          echo "=== git diff --name-status (working tree) ==="
+          git diff --name-status || true
+          echo
+          echo "=== last 5 commits ==="
+          git --no-pager log -5 --oneline --decorate
+          echo
+          exit 1
+        fi
+
+        tag="${tag_prefix}${ver}"
+        if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+          echo "ERROR: expected tag '$tag' was not created."
+          echo
+          echo "=== tags near HEAD ==="
+          git tag --points-at HEAD || true
+          echo
+          echo "=== last 20 tags ==="
+          git tag -l --sort=-creatordate | head -n 20 || true
+          echo
+          exit 1
+        fi
+        
+        echo "Validated commit and tag"
+
+        if jq -e '
+          (.workspaces | type == "array") or
+          (.workspaces.packages | type == "array")
+        ' package.json >/dev/null 2>&1; then
+          echo "Publishing workspace package"
+          is_workspace=true
+        fi
+        
+        # Yarn classic does not support OIDC so we use npm instead
+        if [ "$is_workspace" = "true" ]; then
+          npm publish -w "${package}"
+        else
+          cd $dir
+          npm publish
+        fi
+
+    - name: Push Git Commit and Tag
+      shell: bash
+      run: |
+        git push origin master --follow-tags
