@@ -1,5 +1,4 @@
 import * as anchor from "@coral-xyz/anchor";
-import { ComputeBudgetProgram, PublicKey } from "@solana/web3.js";
 import { Decimal } from "decimal.js";
 import DISTRIBUTORIDL from "./rpc_client/merkle_distributor.json";
 import * as fs from "fs";
@@ -10,6 +9,7 @@ import {
   createSignerFromKeyPair,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
+  getAddressDecoder,
   getAddressEncoder,
   getBase64EncodedWireTransaction,
   getProgramDerivedAddress,
@@ -26,9 +26,9 @@ import {
   TOKEN_PROGRAM_ADDRESS,
 } from "@solana-program/token";
 import {
-  fromLegacyPublicKey,
-  fromLegacyTransactionInstruction,
-} from "@solana/compat";
+  getSetComputeUnitLimitInstruction,
+  getSetComputeUnitPriceInstruction,
+} from "@solana-program/compute-budget";
 import type { SolanaRpcSubscriptionsApi } from "@solana/rpc-subscriptions-api";
 
 export const DISTRIBUTOR_IDL = DISTRIBUTORIDL as anchor.Idl;
@@ -209,18 +209,10 @@ export function createAddExtraComputeUnitFeeTransaction(
   units: number,
   microLamports: number,
 ): Instruction[] {
-  const ixns: Instruction[] = [];
-  ixns.push(
-    fromLegacyTransactionInstruction(
-      ComputeBudgetProgram.setComputeUnitLimit({ units }),
-    ),
-  );
-  ixns.push(
-    fromLegacyTransactionInstruction(
-      ComputeBudgetProgram.setComputeUnitPrice({ microLamports }),
-    ),
-  );
-  return ixns;
+  return [
+    getSetComputeUnitLimitInstruction({ units }),
+    getSetComputeUnitPriceInstruction({ microLamports: BigInt(microLamports) }),
+  ];
 }
 
 export async function fetchUserDataFromApi(
@@ -304,8 +296,8 @@ export function readMerkleTreesDirectory(
       );
 
       farmConfigFromFile.tree_nodes.forEach((claimant) => {
-        const claimantAddress = fromLegacyPublicKey(
-          new PublicKey(claimant.claimant),
+        const claimantAddress = getAddressDecoder().decode(
+          new Uint8Array(claimant.claimant),
         );
         const amount = claimant.amount;
         const proof = claimant.proof;

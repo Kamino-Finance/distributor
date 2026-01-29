@@ -1,6 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
 import * as Instructions from "./rpc_client/instructions";
-import { SystemProgram } from "@solana/web3.js";
 import {
   accountExist,
   createAtaInstruction,
@@ -19,7 +18,7 @@ import {
   SolanaRpcApi,
 } from "@solana/kit";
 import { TOKEN_PROGRAM_ADDRESS } from "@solana-program/token";
-import { fromLegacyPublicKey } from "@solana/compat";
+import { SYSTEM_PROGRAM_ADDRESS } from "@solana-program/system";
 
 export class Distributor {
   private readonly _connection: Rpc<SolanaRpcApi>;
@@ -125,7 +124,7 @@ export class Distributor {
       to: userAta,
       claimant: user,
       tokenProgram: TOKEN_PROGRAM_ADDRESS,
-      systemProgram: fromLegacyPublicKey(SystemProgram.programId),
+      systemProgram: SYSTEM_PROGRAM_ADDRESS,
     };
 
     const args: Instructions.NewClaimArgs = {
